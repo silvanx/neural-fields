@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.interpolate import interp1d, interp2d
 import matplotlib.pyplot as py
-from functools import partial
 
 
 class Population:
@@ -68,7 +67,7 @@ class Population:
         t_index = self.get_index_from_time(t)
         if len(x_index) == 1 and len(t_index) == 1:
             return self.history[t_index, x_index]
-        elif len(x_index) == 2 and len(t_index == 2):
+        elif len(x_index) == 2 and len(t_index) == 2:
             interpolator = interp2d(t_index, x_index, [[self.history[t, x] for x in x_index] for t in t_index])
             return interpolator(t, x)
         elif len(x_index) == 1:
@@ -102,7 +101,7 @@ class Population:
         """
         Create a vector with activity from entire population converging on point r at time t
         :param r:
-        :param t:
+        :param tn:
         :return:
         """
         t = tn - self.substrate.dt

@@ -4,14 +4,6 @@ from population import Population1D
 import json
 
 
-def model(x, t, params):
-    invtau = 1 / params['tau1']
-    if t > 0:
-        return -invtau * x
-    else:
-        return np.zeros(np.shape(x))
-
-
 if __name__ == "__main__":
     print('Delayed Neural Fields')
     f = open('simulation_params', 'r')
@@ -28,14 +20,23 @@ if __name__ == "__main__":
     state_stn = np.zeros(stn.substrate_grid.shape)
     state_gpe = np.zeros(stn.substrate_grid.shape)
 
+    w12 = -np.ones((state_stn.shape[0], state_gpe.shape[0]))
+    w21 = np.ones((state_gpe.shape[0], state_stn.shape[0]))
+    w22 = -0.1 * np.ones((state_gpe.shape[0], state_gpe.shape[0]))
+
     for i, t in enumerate(substrate.tt):
         state_stn = stn.last_state()
         state_gpe = gpe.last_state()
         if t > 0:
-            state_stn += - params['substrate']['dt']/params['populations']['stn']['tau'] \
-                         * (state_stn)
-            state_gpe += -params['substrate']['dt']/params['populations']['gpe']['tau'] \
-                         * (state_gpe)
+            inputs_to_stn = np.array([np.dot(w12[ri, :], gpe.delayed_activity(r, t))
+                                      for ri, r in enumerate(stn.substrate_grid)])
+            inputs_to_gpe = np.array([np.dot(w22[ri, :], gpe.delayed_activity(r, t)) +
+                                      np.dot(w21[ri, :], stn.delayed_activity(r, t))
+                                      for ri, r in enumerate(gpe.substrate_grid)])
+            state_stn += params['substrate']['dt']/params['populations']['stn']['tau'] \
+                         * (-state_stn + stn.sigmoid(inputs_to_stn))
+            state_gpe += params['substrate']['dt']/params['populations']['gpe']['tau'] \
+                         * (-state_gpe + gpe.sigmoid(inputs_to_gpe))
         stn.update_state(t, state_stn)
         gpe.update_state(t, state_gpe)
 
