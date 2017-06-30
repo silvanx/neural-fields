@@ -33,7 +33,7 @@ class Population:
     def sigmoid(self, x):
         numerator = self.m * self.b
         denominator = self.b + (self.m - self.b) * np.exp(-4 * x / self.m)
-        return numerator / denominator - self.b
+        return numerator / denominator
 
     def delay(self, r1, r2):
         return abs(r1 - r2) / self.axonal_speed
