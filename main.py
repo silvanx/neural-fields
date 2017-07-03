@@ -13,11 +13,14 @@ if __name__ == "__main__":
 
     substrate = Substrate1D(params['substrate'], max_delta)
 
-    stn = Population1D(params['populations']['stn'], substrate)
-    gpe = Population1D(params['populations']['gpe'], substrate)
+    populations = {name: Population1D(name, params['populations'][name], substrate) for name in params['populations']}
+    states = {population.name: np.zeros(population.substrate_grid.shape) for population in populations.values()}
 
-    state_stn = np.zeros(stn.substrate_grid.shape)
-    state_gpe = np.zeros(stn.substrate_grid.shape)
+    stn = populations['stn2']
+    gpe = populations['gpe2']
+
+    state_stn = states['stn2']
+    state_gpe = states['gpe2']
 
     def g12(r1, r2, params):
         x = abs(abs(r1 - params["mu1"]) - abs(r2 - params["mu2"]))
@@ -57,5 +60,5 @@ if __name__ == "__main__":
         gpe.update_state(t, state_gpe)
 
     print("simulation finished")
-    stn.plot_history()
-    gpe.plot_history()
+    stn.plot_history_average()
+    gpe.plot_history_average()

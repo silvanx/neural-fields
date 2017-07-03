@@ -5,7 +5,8 @@ import matplotlib.pyplot as py
 
 class Population:
 
-    def __init__(self, params, substrate):
+    def __init__(self, name, params, substrate):
+        self.name = name
         initial_value = params['x0']
         self.physical_size = np.array(params['x_size'], dtype=float).flatten()
         self.starting_point = np.array(params['starting_point'], dtype=float).flatten()
@@ -89,13 +90,17 @@ class Population:
         py.plot(self.tt, self.history[:, :])
         py.show()
 
+    def plot_history_average(self):
+        py.plot(self.tt, self.history.mean(axis=1))
+        py.show()
+
     def __call__(self, x, t):
         if t <= 0:
             return self.initial_state(x)
         if t > self.max_t:
             raise IndexError("Time {} is not yet evaluated (last evaluated: {})".format(t, self.max_t))
         else:
-            return self.state_from_history(x, t)
+            return np.array([self.state_from_history(x, t)]).flatten()[0]
 
     def delayed_activity(self, r, tn):
         """

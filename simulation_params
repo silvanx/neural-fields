@@ -18,6 +18,24 @@
       "tau": 6,
       "x0": 7,
       "axonal_speed": 1.4
+    },
+    "stn2": {
+      "x_size": 2.5,
+      "starting_point": 0,
+      "m": 400,
+      "b": 70,
+      "tau": 7,
+      "x0": 10,
+      "axonal_speed": 0.7
+    },
+    "gpe2": {
+      "x_size": 2.5,
+      "starting_point": 12.5,
+      "m": 300,
+      "b": 17,
+      "tau": 6,
+      "x0": 7,
+      "axonal_speed": 0.3
     }
   },
   "substrate": {
