@@ -30,8 +30,21 @@ class Population:
         self.m = params['m']
         self.b = params['b']
         self.dt = substrate.dt
-        self.external_input = params['ext_connectivity'] * params['ext_activity']
+        self.external_input_mean = params['ext_connectivity'] * params['ext_activity']
+        self.external_input_periodic = False
+        if params["ext_periodic"] == 1:
+            self.external_input_periodic = True
+            self.external_input_frequency = params['ext_frequency']
+            self.external_input_phase = params['ext_phase']
+            self.external_input_amplitude = params['ext_amplitude']
         self.tau = params['tau']
+
+    def external_input(self, t):
+        if self.external_input_periodic:
+            sine_argument = 2 * np.pi * (self.external_input_frequency * t / 1000 + self.external_input_phase)
+            return self.external_input_mean + self.external_input_amplitude * np.sin(sine_argument)
+        else:
+            return self.external_input_mean
 
     def sigmoid(self, x):
         numerator = self.m * self.b

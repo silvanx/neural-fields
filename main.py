@@ -62,7 +62,7 @@ if __name__ == "__main__":
             for pop in populations.keys():
                 inputs[pop] = np.array([np.sum([np.dot(get_connectivity(w, (pop, p), ri, states[p].shape),
                                                        populations[p].delayed_activity(r, t))
-                                                for p in populations.keys()]) + populations[pop].external_input
+                                                for p in populations.keys()]) + populations[pop].external_input(t)
                                         for ri, r in enumerate(populations[pop].substrate_grid)])
             for p in populations.keys():
                 states[p] += substrate.dt/populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
@@ -75,4 +75,11 @@ if __name__ == "__main__":
     populations['stn2'].plot_history_average(False)
     populations['gpe2'].plot_history_average(False)
     py.legend(['stn', 'gpe', 'stn2', 'gpe2'])
+    py.show()
+    average = np.mean([np.mean(p.history, axis=1) for p in populations.values()], axis=0)
+    py.subplot(2, 1, 1)
+    py.plot(substrate.tt, average)
+    Fs = 1000 / substrate.dt
+    py.subplot(2, 1, 2)
+    Pxx, freqs, bins, im = py.specgram(average, NFFT=1024, Fs=Fs, noverlap=10)
     py.show()
