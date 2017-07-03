@@ -1,6 +1,6 @@
+import matplotlib.pyplot as py
 import numpy as np
 from scipy.interpolate import interp1d, interp2d
-import matplotlib.pyplot as py
 
 
 class Population:
@@ -30,6 +30,8 @@ class Population:
         self.m = params['m']
         self.b = params['b']
         self.dt = substrate.dt
+        self.external_input = params['ext_connectivity'] * params['ext_activity']
+        self.tau = params['tau']
 
     def sigmoid(self, x):
         numerator = self.m * self.b
@@ -86,13 +88,15 @@ class Population:
         else:
             raise ValueError("Selected time not in the grid")
 
-    def plot_history(self):
+    def plot_history(self, show=True):
         py.plot(self.tt, self.history[:, :])
-        py.show()
+        if show:
+            py.show()
 
-    def plot_history_average(self):
+    def plot_history_average(self, show=True):
         py.plot(self.tt, self.history.mean(axis=1))
-        py.show()
+        if show:
+            py.show()
 
     def __call__(self, x, t):
         if t <= 0:

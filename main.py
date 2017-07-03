@@ -1,7 +1,33 @@
-import numpy as np
-from substrate import Substrate1D
-from population import Population1D
 import json
+
+import matplotlib.pyplot as py
+import numpy as np
+
+from population import Population1D
+from substrate import Substrate1D
+
+
+def g12(r1, r2, params):
+    x = abs(abs(r1 - params["mu1"]) - abs(r2 - params["mu2"]))
+    return -params["K12"] * np.exp(-x ** 2 / (2 * params["sigma12"]))
+
+
+def g22(r1, r2, params):
+    x = abs(r1 - r2)
+    return -abs(r1 - r2) * params["K22"] * np.exp(-x ** 2 / (2 * params["sigma22"]))
+
+
+def g21(r1, r2, params):
+    x = abs(abs(r1 - params["mu1"]) - abs(r2 - params["mu2"]))
+    return params["K21"] * np.exp(-x ** 2 / (2 * params["sigma21"]))
+
+
+def get_connectivity(kernel, key, column, shape):
+    if key in kernel:
+        return kernel[key][column, :]
+    else:
+        return np.zeros(shape)
+
 
 if __name__ == "__main__":
     print('Delayed Neural Fields')
@@ -14,51 +40,39 @@ if __name__ == "__main__":
     substrate = Substrate1D(params['substrate'], max_delta)
 
     populations = {name: Population1D(name, params['populations'][name], substrate) for name in params['populations']}
-    states = {population.name: np.zeros(population.substrate_grid.shape) for population in populations.values()}
 
-    stn = populations['stn2']
-    gpe = populations['gpe2']
-
-    state_stn = states['stn2']
-    state_gpe = states['gpe2']
-
-    def g12(r1, r2, params):
-        x = abs(abs(r1 - params["mu1"]) - abs(r2 - params["mu2"]))
-        return -params["K12"] * np.exp(-x ** 2 / (2 * params["sigma12"]))
-
-    def g22(r1, r2, params):
-        x = abs(r1 - r2)
-        return -abs(r1 - r2) * params["K22"] * np.exp(-x ** 2 / (2 * params["sigma22"]))
-
-    def g21(r1, r2, params):
-        x = abs(abs(r1 - params["mu1"]) - abs(r2 - params["mu2"]))
-        return params["K21"] * np.exp(-x ** 2 / (2 * params["sigma21"]))
-
-
-    w11 = np.zeros((state_stn.shape[0], state_stn.shape[0]))
-    w12 = np.array([[g12(r1, r2, params) for r2 in gpe.substrate_grid] for r1 in stn.substrate_grid])
-    w21 = np.array([[g21(r1, r2, params) for r2 in stn.substrate_grid] for r1 in gpe.substrate_grid])
-    w22 = np.array([[g22(r1, r2, params) for r2 in gpe.substrate_grid] for r1 in gpe.substrate_grid])
+    w = dict()
+    w[('stn', 'gpe')] = np.array([[g12(r1, r2, params) for r2 in populations['gpe'].substrate_grid]
+                                  for r1 in populations['stn'].substrate_grid])
+    w[('gpe', 'stn')] = np.array([[g21(r1, r2, params) for r2 in populations['stn'].substrate_grid]
+                                  for r1 in populations['gpe'].substrate_grid])
+    w[('gpe', 'gpe')] = np.array([[g22(r1, r2, params) for r2 in populations['gpe'].substrate_grid]
+                                  for r1 in populations['gpe'].substrate_grid])
+    w[('stn2', 'gpe2')] = np.array([[g12(r1, r2, params) for r2 in populations['gpe2'].substrate_grid]
+                                    for r1 in populations['stn2'].substrate_grid])
+    w[('gpe2', 'stn2')] = np.array([[g21(r1, r2, params) for r2 in populations['stn2'].substrate_grid]
+                                    for r1 in populations['gpe2'].substrate_grid])
+    w[('gpe2', 'gpe2')] = np.array([[g22(r1, r2, params) for r2 in populations['gpe2'].substrate_grid]
+                                    for r1 in populations['gpe2'].substrate_grid])
 
     for i, t in enumerate(substrate.tt):
-        state_stn = stn.last_state()
-        state_gpe = gpe.last_state()
+        states = {p.name: p.last_state() for p in populations.values()}
         if t > 0:
-            inputs_to_stn = np.array([np.dot(w11[ri, :], gpe.delayed_activity(r, t)) +
-                                      np.dot(w12[ri, :], gpe.delayed_activity(r, t)) +
-                                      27 * 12.5
-                                      for ri, r in enumerate(stn.substrate_grid)])
-            inputs_to_gpe = np.array([np.dot(w22[ri, :], gpe.delayed_activity(r, t)) +
-                                      np.dot(w21[ri, :], stn.delayed_activity(r, t)) -
-                                      110 * 2
-                                      for ri, r in enumerate(gpe.substrate_grid)])
-            state_stn += params['substrate']['dt']/params['populations']['stn']['tau'] \
-                         * (-state_stn + stn.sigmoid(inputs_to_stn))
-            state_gpe += params['substrate']['dt']/params['populations']['gpe']['tau'] \
-                         * (-state_gpe + gpe.sigmoid(inputs_to_gpe))
-        stn.update_state(t, state_stn)
-        gpe.update_state(t, state_gpe)
+            inputs = dict()
+            for pop in populations.keys():
+                inputs[pop] = np.array([np.sum([np.dot(get_connectivity(w, (pop, p), ri, states[p].shape),
+                                                       populations[p].delayed_activity(r, t))
+                                                for p in populations.keys()]) + populations[pop].external_input
+                                        for ri, r in enumerate(populations[pop].substrate_grid)])
+            for p in populations.keys():
+                states[p] += substrate.dt/populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
+        for p in populations.keys():
+            populations[p].update_state(t, states[p])
 
     print("simulation finished")
-    stn.plot_history_average()
-    gpe.plot_history_average()
+    populations['stn'].plot_history_average(False)
+    populations['gpe'].plot_history_average(False)
+    populations['stn2'].plot_history_average(False)
+    populations['gpe2'].plot_history_average(False)
+    py.legend(['stn', 'gpe', 'stn2', 'gpe2'])
+    py.show()

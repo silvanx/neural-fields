@@ -8,7 +8,9 @@
       "b": 70,
       "tau": 7,
       "x0": 10,
-      "axonal_speed": 2.5
+      "axonal_speed": 2.5,
+      "ext_activity": 27,
+      "ext_connectivity": 12.5
     },
     "gpe": {
       "x_size": 2.5,
@@ -17,7 +19,9 @@
       "b": 17,
       "tau": 6,
       "x0": 7,
-      "axonal_speed": 1.4
+      "axonal_speed": 1.4,
+      "ext_activity": 2,
+      "ext_connectivity": -110
     },
     "stn2": {
       "x_size": 2.5,
@@ -26,7 +30,9 @@
       "b": 70,
       "tau": 7,
       "x0": 10,
-      "axonal_speed": 0.7
+      "axonal_speed": 0.7,
+      "ext_activity": 27,
+      "ext_connectivity": 12.5
     },
     "gpe2": {
       "x_size": 2.5,
@@ -35,7 +41,9 @@
       "b": 17,
       "tau": 6,
       "x0": 7,
-      "axonal_speed": 0.3
+      "axonal_speed": 0.3,
+      "ext_activity": 2,
+      "ext_connectivity": -110
     }
   },
   "substrate": {
