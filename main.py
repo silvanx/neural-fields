@@ -1,3 +1,4 @@
+import argparse
 import json
 
 import matplotlib.pyplot as py
@@ -31,9 +32,13 @@ def get_connectivity(kernel, key, column, shape):
 
 if __name__ == "__main__":
     print('Delayed Neural Fields')
-    f = open('simulation_params', 'r')
+    parser = argparse.ArgumentParser(description='Delayed Neural Fields simulation')
+    parser.add_argument('params', type=str, help='File with parameters of the simulation')
+    args = parser.parse_args()
+    f = open(args.params, 'r')
     params = json.load(f)
     print(params)
+    # TODO: Calculate max delta
     max_delta = 20
     dx = params["substrate"]["dx"]
 
@@ -48,12 +53,13 @@ if __name__ == "__main__":
                                   for r1 in populations['gpe'].substrate_grid])
     w[('gpe', 'gpe')] = np.array([[g22(r1, r2, params) for r2 in populations['gpe'].substrate_grid]
                                   for r1 in populations['gpe'].substrate_grid])
-    w[('stn2', 'gpe2')] = np.array([[g12(r1, r2, params) for r2 in populations['gpe2'].substrate_grid]
-                                    for r1 in populations['stn2'].substrate_grid])
-    w[('gpe2', 'stn2')] = np.array([[g21(r1, r2, params) for r2 in populations['stn2'].substrate_grid]
-                                    for r1 in populations['gpe2'].substrate_grid])
-    w[('gpe2', 'gpe2')] = np.array([[g22(r1, r2, params) for r2 in populations['gpe2'].substrate_grid]
-                                    for r1 in populations['gpe2'].substrate_grid])
+    if 'stn2' in populations.keys():
+        w[('stn2', 'gpe2')] = np.array([[g12(r1, r2, params) for r2 in populations['gpe2'].substrate_grid]
+                                        for r1 in populations['stn2'].substrate_grid])
+        w[('gpe2', 'stn2')] = np.array([[g21(r1, r2, params) for r2 in populations['stn2'].substrate_grid]
+                                        for r1 in populations['gpe2'].substrate_grid])
+        w[('gpe2', 'gpe2')] = np.array([[g22(r1, r2, params) for r2 in populations['gpe2'].substrate_grid]
+                                        for r1 in populations['gpe2'].substrate_grid])
 
     for i, t in enumerate(substrate.tt):
         states = {p.name: p.last_state() for p in populations.values()}
@@ -72,8 +78,9 @@ if __name__ == "__main__":
     print("simulation finished")
     populations['stn'].plot_history_average(False)
     populations['gpe'].plot_history_average(False)
-    populations['stn2'].plot_history_average(False)
-    populations['gpe2'].plot_history_average(False)
+    if 'stn2' in populations.keys():
+        populations['stn2'].plot_history_average(False)
+        populations['gpe2'].plot_history_average(False)
     py.legend(['stn', 'gpe', 'stn2', 'gpe2'])
     py.show()
     average = np.mean([np.mean(p.history, axis=1) for p in populations.values()], axis=0)
