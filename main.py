@@ -69,7 +69,8 @@ if __name__ == "__main__":
                 inputs[pop] = np.array([np.sum([np.dot(get_connectivity(w, (pop, p), ri, states[p].shape),
                                                        populations[p].delayed_activity(r, t))
                                                 for p in populations.keys()]) + populations[pop].external_input(t)
-                                        for ri, r in enumerate(populations[pop].substrate_grid)])
+                                        for ri, r in enumerate(populations[pop].substrate_grid)]) + \
+                              populations[pop].control(t)
             for p in populations.keys():
                 states[p] += substrate.dt/populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
@@ -78,10 +79,13 @@ if __name__ == "__main__":
     print("simulation finished")
     populations['stn'].plot_history_average(False)
     populations['gpe'].plot_history_average(False)
+    py.plot(populations['stn'].tt, np.mean(populations['stn'].control.history, axis=1))
     if 'stn2' in populations.keys():
         populations['stn2'].plot_history_average(False)
         populations['gpe2'].plot_history_average(False)
-    py.legend(['stn', 'gpe', 'stn2', 'gpe2'])
+        py.legend(['stn', 'gpe', 'theta', 'stn2', 'gpe2'])
+    else:
+        py.legend(['stn', 'gpe', 'theta'])
     py.show()
     average = np.mean([np.mean(p.history, axis=1) for p in populations.values()], axis=0)
     py.subplot(2, 1, 1)

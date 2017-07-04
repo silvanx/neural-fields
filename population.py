@@ -2,6 +2,8 @@ import matplotlib.pyplot as py
 import numpy as np
 from scipy.interpolate import interp1d, interp2d
 
+from control import AdaptiveProportionalControl, ZeroControl
+
 
 class Population:
 
@@ -38,6 +40,10 @@ class Population:
             self.external_input_phase = params['ext_phase']
             self.external_input_amplitude = params['ext_amplitude']
         self.tau = params['tau']
+        if 'control' in params.keys():
+            self.control = AdaptiveProportionalControl(params['control'], self)
+        else:
+            self.control = ZeroControl(self)
 
     def external_input(self, t):
         if self.external_input_periodic:
@@ -98,6 +104,7 @@ class Population:
         if len(index) == 1:
             self.history[index] = state
             self.max_t = t
+            self.control.update_gain(index)
         else:
             raise ValueError("Selected time not in the grid")
 

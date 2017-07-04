@@ -11,7 +11,12 @@
       "axonal_speed": 2.5,
       "ext_activity": 27,
       "ext_connectivity": 12.5,
-      "ext_periodic": 0
+      "ext_periodic": 0,
+      "control": {
+        "initial_value": 0,
+        "start_time": 700,
+        "tau": 30
+      }
     },
     "gpe": {
       "x_size": 2.5,
