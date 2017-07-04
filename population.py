@@ -104,7 +104,7 @@ class Population:
         if len(index) == 1:
             self.history[index] = state
             self.max_t = t
-            self.control.update_gain(index)
+            self.control.update_gain(t)
         else:
             raise ValueError("Selected time not in the grid")
 

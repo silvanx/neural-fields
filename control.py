@@ -39,9 +39,11 @@ class AdaptiveProportionalControl(Control):
             if len(i) == 1:
                 return np.array([-self.population(x, t) for x in self.population.substrate_grid] * self.history[i][0])
 
-    def update_gain(self, i):
-        self.gain += self.dt / self.tau * np.absolute(self.population.last_state())
-        self.history[i] = self.gain
+    def update_gain(self, t):
+        if t > self.start_time:
+            i = self.get_index_from_time(t)[0]
+            self.gain += self.dt / self.tau * np.absolute(self.population.last_state())
+            self.history[i] = self.gain
 
 
 class ZeroControl(Control):
