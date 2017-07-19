@@ -1,6 +1,7 @@
 import matplotlib.pyplot as py
 import numpy as np
 from scipy.interpolate import interp1d, interp2d
+import bigfloat
 
 from control import AdaptiveProportionalControl, ZeroControl
 
@@ -32,6 +33,7 @@ class Population:
         self.m = params['m']
         self.b = params['b']
         self.dt = substrate.dt
+        self.mu = params['starting_point'] + params['x_size'] / 2
         self.external_input_mean = params['ext_connectivity'] * params['ext_activity']
         self.external_input_periodic = False
         if params["ext_periodic"] == 1:
@@ -54,8 +56,8 @@ class Population:
 
     def sigmoid(self, x):
         numerator = self.m * self.b
-        denominator = self.b + (self.m - self.b) * np.exp(-4 * x / self.m)
-        return numerator / denominator
+        denominator = self.b + (self.m - self.b) * np.array([bigfloat.exp(r) for r in (-4 * x / self.m)])
+        return numerator / denominator.astype(float)
 
     def delay(self, r1, r2):
         return abs(r1 - r2) / self.axonal_speed
