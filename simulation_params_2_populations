@@ -8,14 +8,20 @@
       "b": 70,
       "tau": 7,
       "x0": 10,
-      "axonal_speed": 2.5,
+      "axonal_speed": 1.25,
       "ext_activity": 27,
       "ext_connectivity": 12.5,
       "ext_periodic": 0,
+      "ext_frequency": 0.2,
+      "ext_phase": 0,
+      "ext_amplitude": 300,
       "control": {
+        "type": "zero",
         "initial_value": 0,
-        "start_time": 700,
-        "tau": 30
+        "start_time": 1000,
+        "tau": 10,
+        "alpha": 0,
+        "epsilon": 2
       }
     },
     "gpe": {
@@ -25,7 +31,7 @@
       "b": 17,
       "tau": 6,
       "x0": 7,
-      "axonal_speed": 1.4,
+      "axonal_speed": 0.7,
       "ext_activity": 2,
       "ext_connectivity": -110,
       "ext_periodic": 0
@@ -33,14 +39,14 @@
   },
   "substrate": {
     "x_size": 15,
-    "dx": 0.5,
-    "tstop": 5000,
-    "dt": 0.5
+    "dx": 2,
+    "tstop": 10000,
+    "dt": 1
   },
   "sigma12": 0.03,
   "sigma21": 0.03,
   "sigma22": 0.015,
-  "K12": 30,
-  "K21": 38,
+  "K12": 350,
+  "K21": 350,
   "K22": 2.55
 }

@@ -9,12 +9,9 @@
       "tau": 7,
       "x0": 10,
       "axonal_speed": 2.5,
-      "ext_activity": 27,
-      "ext_connectivity": 12.5,
-      "ext_periodic": 1,
-      "ext_frequency": 0.5,
-      "ext_phase": 0,
-      "ext_amplitude": 600
+      "ext_activity": 0,
+      "ext_connectivity": 0,
+      "ext_periodic": 0
     },
     "gpe": {
       "x_size": 2.5,
@@ -24,54 +21,21 @@
       "tau": 6,
       "x0": 7,
       "axonal_speed": 1.4,
-      "ext_activity": 2,
-      "ext_connectivity": -110,
-      "ext_periodic": 1,
-      "ext_frequency": 0.5,
-      "ext_phase": 0,
-      "ext_amplitude": 250
-    },
-    "stn2": {
-      "x_size": 2.5,
-      "starting_point": 0,
-      "m": 400,
-      "b": 70,
-      "tau": 7,
-      "x0": 10,
-      "axonal_speed": 2.5,
-      "ext_activity": 27,
-      "ext_connectivity": 12.5,
-      "ext_periodic": 1,
-      "ext_frequency": 0.5,
-      "ext_phase": 0.5,
-      "ext_amplitude": 600
-    },
-    "gpe2": {
-      "x_size": 2.5,
-      "starting_point": 12.5,
-      "m": 300,
-      "b": 17,
-      "tau": 6,
-      "x0": 7,
-      "axonal_speed": 1.4,
-      "ext_activity": 2,
-      "ext_connectivity": -110,
-      "ext_periodic": 1,
-      "ext_frequency": 0.5,
-      "ext_phase": 0.5,
-      "ext_amplitude": 250
+      "ext_activity": 0,
+      "ext_connectivity": 0,
+      "ext_periodic": 0
     }
   },
   "substrate": {
     "x_size": 15,
-    "dx": 1,
+    "dx": 0.5,
     "tstop": 5000,
     "dt": 1
   },
   "sigma12": 0.03,
   "sigma21": 0.03,
   "sigma22": 0.015,
-  "K12": 30,
-  "K21": 38,
-  "K22": 2.55
+  "K12": 20,
+  "K21": 25,
+  "K22": 0.153
 }

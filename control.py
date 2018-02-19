@@ -24,7 +24,6 @@ class Control:
         else:
             return [index - 1, index]
 
-
 class AdaptiveProportionalControl(Control):
     def __init__(self, params, population):
         super().__init__(params, population)
@@ -45,6 +44,17 @@ class AdaptiveProportionalControl(Control):
             self.gain += self.dt / self.tau * np.absolute(self.population.last_state())
             self.history[i] = self.gain
 
+class DissipativeControl(AdaptiveProportionalControl):
+    def __init__(self, params, population):
+        super().__init__(params, population)
+        self.epsilon = params['epsilon']
+
+    def update_gain(self, t):
+        if t > self.start_time:
+            i = self.get_index_from_time(t)[0]
+            self.gain += self.dt / self.tau * (np.absolute(self.population.last_state()) - self.epsilon * self.gain)
+            self.history[i] = self.gain
+
 
 class ZeroControl(Control):
     def __init__(self, population):
@@ -52,3 +62,16 @@ class ZeroControl(Control):
 
     def __call__(self, t):
         return np.zeros(self.population.last_state().shape)
+
+
+class AlphaControl(AdaptiveProportionalControl):
+    def __init__(self, params, population):
+        super().__init__(params, population)
+        self.alpha = params['alpha']
+        self.epsilon = params['epsilon']
+
+    def update_gain(self, t):
+        if t > self.start_time:
+            i = self.get_index_from_time(t)[0]
+            self.gain += self.dt / self.tau * (np.absolute(self.population.last_state()) - self.epsilon * self.gain + self.alpha)
+            self.history[i] = self.gain

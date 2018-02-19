@@ -1,14 +1,14 @@
 import matplotlib.pyplot as py
 import numpy as np
 from scipy.interpolate import interp1d, interp2d
-import bigfloat
 
-from control import AdaptiveProportionalControl, ZeroControl
+from control import *
 
 
 class Population:
 
     def __init__(self, name, params, substrate):
+        self.max_index = 0
         self.name = name
         initial_value = params['x0']
         self.physical_size = np.array(params['x_size'], dtype=float).flatten()
@@ -34,30 +34,28 @@ class Population:
         self.b = params['b']
         self.dt = substrate.dt
         self.mu = params['starting_point'] + params['x_size'] / 2
-        self.external_input_mean = params['ext_connectivity'] * params['ext_activity']
-        self.external_input_periodic = False
-        if params["ext_periodic"] == 1:
-            self.external_input_periodic = True
-            self.external_input_frequency = params['ext_frequency']
-            self.external_input_phase = params['ext_phase']
-            self.external_input_amplitude = params['ext_amplitude']
         self.tau = params['tau']
         if 'control' in params.keys():
-            self.control = AdaptiveProportionalControl(params['control'], self)
+            if params['control']['type'] == 'adaptive':
+                self.control = AdaptiveProportionalControl(params['control'], self)
+            elif params['control']['type'] == 'alpha':
+                self.control = AlphaControl(params['control'], self)
+            elif params['control']['type'] == 'dissipative':
+                self.control = DissipativeControl(params['control'], self)
+            elif params['control']['type'] == 'zero':
+                self.control = ZeroControl(self)
         else:
             self.control = ZeroControl(self)
 
-    def external_input(self, t):
-        if self.external_input_periodic:
-            sine_argument = 2 * np.pi * (self.external_input_frequency * t / 1000 + self.external_input_phase)
-            return self.external_input_mean + self.external_input_amplitude * np.sin(sine_argument)
-        else:
-            return self.external_input_mean
-
     def sigmoid(self, x):
         numerator = self.m * self.b
-        denominator = self.b + (self.m - self.b) * np.array([bigfloat.exp(r) for r in (-4 * x / self.m)])
-        return numerator / denominator.astype(float)
+        denominator = self.b + (self.m - self.b) * np.array([np.exp(r) for r in (-4 * (x + self.m * np.log((self.m - self.b) / self.b) / 4) / self.m)])
+        return numerator / denominator.astype(float) - self.m/2
+
+    # def sigmoid(self, x):
+    #     numerator = self.m * self.b
+    #     denominator = self.b + (self.m - self.b) * np.array([np.exp(r) for r in (-4 * x / self.m)])
+    #     return numerator / denominator.astype(float)
 
     def delay(self, r1, r2):
         return abs(r1 - r2) / self.axonal_speed
@@ -73,14 +71,14 @@ class Population:
     def get_index_from_position(self, x):
         if x < self.starting_point or x > self.starting_point + self.physical_size:
             raise IndexError("Position not within the population")
-        index = min(np.where(self.substrate_grid >= x)[0])
+        index = np.where(self.substrate_grid >= x)[0][0]
         if self.substrate_grid[index] == x:
             return [index]
         else:
             return [index - 1, index]
 
     def get_index_from_time(self, t):
-        index = min(np.where(self.tt >= t)[0])
+        index = np.where(self.tt >= t)[0][0]
         if self.tt[index] == t:
             return [index]
         else:
@@ -106,7 +104,8 @@ class Population:
         if len(index) == 1:
             self.history[index] = state
             self.max_t = t
-            self.control.update_gain(t)
+            self.max_index = index[0]
+            # self.control.update_gain(t)
         else:
             raise ValueError("Selected time not in the grid")
 
@@ -119,6 +118,9 @@ class Population:
         py.plot(self.tt, self.history.mean(axis=1))
         if show:
             py.show()
+
+    def get_tail(self, length):
+        return self.history.mean(axis=1)[self.max_index - length : self.max_index]
 
     def __call__(self, x, t):
         if t <= 0:
