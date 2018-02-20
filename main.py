@@ -13,8 +13,8 @@ from control import *
 
 
 def g12(r1, r2, mu1, mu2, params):
-    x = abs(abs(r1 - mu1) - abs(r2 - mu2))
-    # x = abs(r1 - r2 - mu2)
+    # x = abs(abs(r1 - mu1) - abs(r2 - mu2))
+    x = r2 - r1 - (2 * mu1 + 10)
     return np.float(-params["K12"] * np.exp(-x ** 2 / (2 * params["sigma12"])))
 
 
@@ -24,8 +24,9 @@ def g22(r1, r2, mu1, mu2, params):
 
 
 def g21(r1, r2, mu1, mu2, params):
-    x = abs(abs(r1 - mu1) - abs(r2 - mu2))
-    # x = abs(r2 - r1 - mu1)
+    # r1 -> gpe; r2 -> stn
+    # x = abs(abs(r1 - mu1) - abs(r2 - mu2))
+    x = r2 - r1 + (2 * mu1 + 10)
     return np.float(params["K21"] * np.exp(-x ** 2 / (2 * params["sigma21"])))
 
 
@@ -46,6 +47,8 @@ if __name__ == "__main__":
     # TODO: Calculate max delta
     max_delta = 20
     dx = params["substrate"]["dx"]
+    plot_connectivity = False
+    feedback = True
 
     substrate = Substrate1D(params['substrate'], max_delta)
 
@@ -57,31 +60,53 @@ if __name__ == "__main__":
     w = dict()
     w[('stn', 'gpe')] = np.array([[g12(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
                                   for r1 in populations['stn'].substrate_grid])
-    w[('gpe', 'stn')] = np.array([[g21(r1, r2, populations['gpe'].mu, populations['stn'].mu, params) for r2 in populations['stn'].substrate_grid]
+    w[('gpe', 'stn')] = np.array([[g21(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['stn'].substrate_grid]
                                   for r1 in populations['gpe'].substrate_grid])
     w[('gpe', 'gpe')] = np.array([[g22(r1, r2, populations['gpe'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
                                   for r1 in populations['gpe'].substrate_grid])
-    if 'stn2' in populations.keys():
-        w[('stn2', 'gpe2')] = np.array([[g12(r1, r2, populations['stn2'].mu, populations['gpe2'].mu, params) for r2 in populations['gpe2'].substrate_grid]
-                                        for r1 in populations['stn2'].substrate_grid])
-        w[('gpe2', 'stn2')] = np.array([[g21(r1, r2, populations['gpe2'].mu, populations['stn2'].mu, params) for r2 in populations['stn2'].substrate_grid]
-                                        for r1 in populations['gpe2'].substrate_grid])
-        w[('gpe2', 'gpe2')] = np.array([[g22(r1, r2, populations['gpe2'].mu, populations['gpe2'].mu, params) for r2 in populations['gpe2'].substrate_grid]
-                                        for r1 in populations['gpe2'].substrate_grid])
+
+
+    # py.figure()
+    # wtotal = np.array([[g21(r2, r1, populations['stn'].mu, populations['gpe'].mu, params) for r2 in np.arange(0, 15 + dx, dx)]
+    #                               for r1 in np.arange(0, 15 + dx, dx)])
+    # py.imshow(wtotal)
+
+    wmin = np.min([np.min(ww) for ww in w.values()])
+    wmax = np.max([np.max(ww) for ww in w.values()])
+
+    if plot_connectivity:
+        py.figure()
+        py.subplot(222)
+        py.imshow(w[('stn', 'gpe')], cmap='RdBu', vmin=wmin, vmax=wmax)
+        py.title('stn-gpe')
+        py.subplot(223)
+        py.imshow(w[('gpe', 'stn')], cmap='RdBu', vmin=wmin, vmax=wmax)
+        py.title('gpe-stn')
+        py.subplot(224)
+        py.imshow(w[('gpe', 'gpe')], cmap='RdBu', vmin=wmin, vmax=wmax)
+        py.title('gpe-gpe')
+
+    print('The norm of w22 is ' + str(np.sum(w[('gpe', 'gpe')] ** 2) * dx ** 2))
+    print('The norm of w12 is ' + str(np.sum(w[('stn', 'gpe')] ** 2) * dx ** 2))
+    print('The norm of w21 is ' + str(np.sum(w[('gpe', 'stn')] ** 2) * dx ** 2))
 
     for i, t in enumerate(substrate.tt):
+        if i % 200 == 0:
+            print(i, t)
         states = {p.name: p.last_state() for p in populations.values()}
         if t >= 0:
             inputs = dict()
             for pop in populations.keys():
                 inputs[pop] = np.array([np.sum([np.dot(get_connectivity(w, (pop, p), ri, states[p].shape),
-                                                       populations[p].delayed_activity(r, t))
+                                                       populations[p].delayed_activity(r, i))
                                                 for p in populations.keys()])
                                         for ri, r in enumerate(populations[pop].substrate_grid)])
+            if feedback and t >= 500:
+                inputs['stn'] -= params['theta0'] * states['stn']
             for p in populations.keys():
                 states[p] += substrate.dt/populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
-            populations[p].update_state(t, states[p])
+            populations[p].update_state(i, states[p])
 
     print("Simulation finished")
     py.figure()
