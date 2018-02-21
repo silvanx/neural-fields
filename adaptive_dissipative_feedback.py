@@ -33,6 +33,7 @@ def get_connectivity(kernel, key, column, shape):
     else:
         return np.zeros(shape)
 
+
 if __name__ == "__main__":
     print('Delayed Neural Fields')
     parser = argparse.ArgumentParser(description='Delayed Neural Fields simulation')
@@ -59,13 +60,15 @@ if __name__ == "__main__":
     tau_theta = 1
 
     w = dict()
-    w[('stn', 'gpe')] = np.array([[g12(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
-                                  for r1 in populations['stn'].substrate_grid])
-    w[('gpe', 'stn')] = np.array([[g21(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['stn'].substrate_grid]
-                                  for r1 in populations['gpe'].substrate_grid])
-    w[('gpe', 'gpe')] = np.array([[g22(r1, r2, populations['gpe'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
-                                  for r1 in populations['gpe'].substrate_grid])
-
+    w[('stn', 'gpe')] = np.array(
+        [[g12(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
+         for r1 in populations['stn'].substrate_grid])
+    w[('gpe', 'stn')] = np.array(
+        [[g21(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['stn'].substrate_grid]
+         for r1 in populations['gpe'].substrate_grid])
+    w[('gpe', 'gpe')] = np.array(
+        [[g22(r1, r2, populations['gpe'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
+         for r1 in populations['gpe'].substrate_grid])
 
     # py.figure()
     # wtotal = np.array([[g21(r2, r1, populations['stn'].mu, populations['gpe'].mu, params) for r2 in np.arange(0, 15 + dx, dx)]
@@ -107,7 +110,7 @@ if __name__ == "__main__":
                 theta_history[i] = theta
                 theta += substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - sigma * theta)
             for p in populations.keys():
-                states[p] += substrate.dt/populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
+                states[p] += substrate.dt / populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
             populations[p].update_state(i, states[p])
 

@@ -47,6 +47,7 @@ if __name__ == "__main__":
     dx = params["substrate"]["dx"]
     plot_connectivity = False
     feedback = True
+    average_feedback = True
 
     substrate = Substrate1D(params['substrate'], max_delta)
 
@@ -102,7 +103,10 @@ if __name__ == "__main__":
                                                 for p in populations.keys()])
                                         for ri, r in enumerate(populations[pop].substrate_grid)])
             if feedback and t >= feedback_start_time:
-                inputs['stn'] -= params['theta0'] * np.mean(states['stn'])
+                if average_feedback:
+                    inputs['stn'] -= params['theta0'] * np.mean(states['stn']) * dx
+                else:
+                    inputs['stn'] -= params['theta0'] * states['stn']
             for p in populations.keys():
                 states[p] += substrate.dt / populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
