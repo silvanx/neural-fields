@@ -4,6 +4,7 @@ import pprint
 
 import matplotlib.pyplot as py
 
+import utils
 from control import *
 from population import Population1D
 from substrate import Substrate1D
@@ -53,10 +54,10 @@ if __name__ == "__main__":
     populations = {name: Population1D(name, params['populations'][name], substrate) for name in params['populations']}
 
     theta_history = np.zeros(substrate.tt.shape)
-    feedback_start_time = 500
+    feedback_start_time = params['feedback_start_time']
     theta = params['theta0']
-    sigma = 0.01
-    tau_theta = 1
+    sigma = params['sigma']
+    tau_theta = params['tau_theta']
 
     w = dict()
     w[('stn', 'gpe')] = np.array([[g12(r1, r2, populations['stn'].mu, populations['gpe'].mu, params) for r2 in populations['gpe'].substrate_grid]
@@ -93,7 +94,7 @@ if __name__ == "__main__":
 
     for i, t in enumerate(substrate.tt):
         if i % 200 == 0:
-            print(i, t)
+            print('Time: {} ms'.format(t))
         states = {p.name: p.last_state() for p in populations.values()}
         if t >= 0:
             inputs = dict()
@@ -112,21 +113,6 @@ if __name__ == "__main__":
             populations[p].update_state(i, states[p])
 
     print("Simulation finished")
-    py.figure()
-    py.subplot(211)
-    populations['stn'].plot_history(False)
-    py.legend([str(x) for x in populations['stn'].substrate_grid])
-    py.subplot(212)
-    populations['stn'].plot_history_average(False)
-    py.legend(['stn avg'])
-    py.figure()
-    py.subplot(211)
-    populations['gpe'].plot_history(False)
-    py.legend([str(x) for x in populations['gpe'].substrate_grid])
-    py.subplot(212)
-    populations['gpe'].plot_history_average(False)
-    py.legend(['gpe avg'])
-    py.figure()
-    py.plot(substrate.tt, theta_history)
 
-    py.show()
+    utils.plot_simulation_results(populations, theta_history)
+    utils.save_simulation_results(populations, theta_history, params)

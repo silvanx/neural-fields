@@ -1,5 +1,8 @@
 {
   "theta0": 50,
+  "tau_theta": 2,
+  "sigma": 0.01,
+  "feedback_start_time": 500,
   "populations": {
     "stn": {
       "x_size": 2.5,
@@ -29,7 +32,7 @@
   "substrate": {
     "x_size": 15,
     "dx": 1,
-    "tstop": 9000,
+    "tstop": 3000,
     "dt": 0.5
   },
   "sigma12": 0.45,
