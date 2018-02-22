@@ -1,5 +1,7 @@
 import datetime
 import pickle
+import os
+from pathlib import Path
 
 import matplotlib.pyplot as py
 
@@ -35,11 +37,15 @@ def plot_simulation_results(populations, theta_history):
 
 
 def save_simulation_results(populations, theta_history, config):
-    filename = 'simulation_results/dnf_results_' + datetime.datetime.now().isoformat()
+    if not os.path.isdir('simulation_results'):
+        os.makedirs('simulation_results')
+    p = Path('.')
+    f = 'dnf_results_' + datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+    filename = p / f
     result = {
         'populations': populations,
         'theta_history': theta_history,
         'config': config
     }
-    with open(filename, 'wb') as f:
-        pickle.dump(result, f)
+    with open(filename, 'wb') as q:
+        pickle.dump(result, q)
