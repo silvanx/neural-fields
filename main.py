@@ -10,13 +10,11 @@ from population import Population1D
 from substrate import Substrate1D
 
 
-def gauss(k, sigma, x):
-    return np.float(k * np.exp(-x ** 2 / (2 * sigma)))
-
 def g12(r1, r2, mu1, mu2, params):
     # x = abs(abs(r1 - mu1) - abs(r2 - mu2))
     x = r2 - r1 - (2 * mu1 + 10)
     return np.float(-params["K12"] * np.exp(-x ** 2 / (2 * params["sigma12"])))
+
 
 def g22(r1, r2, mu1, mu2, params):
     x = abs(r1 - r2)
@@ -48,7 +46,7 @@ if __name__ == "__main__":
     max_delta = 20
     dx = params["substrate"]["dx"]
     plot_connectivity = False
-    feedback = False
+    feedback = True
     average_feedback = False
 
     substrate = Substrate1D(params['substrate'], max_delta)
