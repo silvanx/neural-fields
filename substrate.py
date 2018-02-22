@@ -31,13 +31,7 @@ class Substrate(object):
             raise ValueError("All dimensions of the population have to be smaller than the substrate")
         if np.any(np.array(population.starting_point) + np.array(population.physical_size) > self.physical_size):
             raise ValueError("With this starting point the population exceeds the substrate")
-        if self.population_overlap(population):
-            raise ValueError("Population overlaps with another one")
         self.populations.append(population)
-
-    def population_overlap(self, population):
-        # TODO: Check if populations overlap
-        return False
 
 
 class Substrate1D(Substrate):

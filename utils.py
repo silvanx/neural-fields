@@ -1,16 +1,9 @@
 import datetime
+import pathlib
 import pickle
 
 import matplotlib.pyplot as py
-
-
-def plotFreqsPickle(filename):
-    with open(filename, 'rb') as f:
-        freqs = pickle.load(f)
-
-    x, y = zip(*list(freqs.items()))
-    py.scatter(x, y)
-    py.show()
+import numpy as np
 
 
 def plot_simulation_results(populations, theta_history):
@@ -34,12 +27,42 @@ def plot_simulation_results(populations, theta_history):
     py.show()
 
 
+def plot_connectivity(w, show=False):
+    # py.figure()
+    # wtotal = np.array([[g21(r2, r1, populations['stn'].mu, populations['gpe'].mu, params) for r2 in np.arange(0, 15 + dx, dx)]
+    #                               for r1 in np.arange(0, 15 + dx, dx)])
+    # py.imshow(wtotal)
+    #
+    # py.figure()
+
+    wmin = np.min([np.min(ww) for ww in w.values()])
+    wmax = np.max([np.max(ww) for ww in w.values()])
+
+    py.figure()
+    py.subplot(222)
+    py.imshow(w[('stn', 'gpe')], cmap='RdBu', vmin=wmin, vmax=wmax)
+    py.title('stn-gpe')
+    py.subplot(223)
+    py.imshow(w[('gpe', 'stn')], cmap='RdBu', vmin=wmin, vmax=wmax)
+    py.title('gpe-stn')
+    py.subplot(224)
+    py.imshow(w[('gpe', 'gpe')], cmap='RdBu', vmin=wmin, vmax=wmax)
+    py.title('gpe-gpe')
+
+    if show:
+        py.show()
+
+
 def save_simulation_results(populations, theta_history, config):
-    filename = 'simulation_results/dnf_results_' + datetime.datetime.now().isoformat()
+    path = pathlib.Path('simulation_results')
+    if not path.exists():
+        path.mkdir()
+    file = 'dnf_results_' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename = path / file
     result = {
         'populations': populations,
         'theta_history': theta_history,
         'config': config
     }
-    with open(filename, 'wb') as f:
+    with filename.open(mode='wb') as f:
         pickle.dump(result, f)
