@@ -1,8 +1,13 @@
 {
-  "theta0": 50,
-  "tau_theta": 2,
+  "theta0": 0,
+  "tau_theta": 10,
   "sigma": 0.01,
+  "feedback": 0,
   "feedback_start_time": 500,
+  "feedback_threshold": 20,
+  "ctx_nudge": 0,
+  "ctx_suppression": 150,
+  "ctx_suppression_start": 2000,
   "populations": {
     "stn": {
       "x_size": 2.5,
@@ -32,7 +37,7 @@
   "substrate": {
     "x_size": 15,
     "dx": 1,
-    "tstop": 3000,
+    "tstop": 7000,
     "dt": 0.5
   },
   "sigma12": 0.45,
@@ -41,5 +46,5 @@
   "K12": 2,
   "K21": 2.5,
   "K22": 0.02,
-  "W_scale": 1
+  "W_scale": 0.5
 }

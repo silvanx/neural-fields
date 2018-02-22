@@ -1,5 +1,5 @@
 {
-  "theta0": 50,
+  "theta0": 0,
   "populations": {
     "stn": {
       "x_size": 2.5,
@@ -29,8 +29,8 @@
   "substrate": {
     "x_size": 15,
     "dx": 1,
-    "tstop": 9000,
-    "dt": 0.5
+    "tstop": 6000,
+    "dt": 0.1
   },
   "sigma12": 0.45,
   "sigma21": 0.45,

@@ -57,7 +57,7 @@ if __name__ == "__main__":
     feedback_start_time = 500
     theta = params['theta0']
     sigma = 0.01
-    tau_theta = 1
+    tau_theta = 5
 
     w = dict()
     w[('stn', 'gpe')] = np.array(
@@ -105,10 +105,17 @@ if __name__ == "__main__":
                                                        populations[p].delayed_activity(r, i)) * dx
                                                 for p in populations.keys()])
                                         for ri, r in enumerate(populations[pop].substrate_grid)])
+            inputs['stn'] += 1
             if feedback and t >= feedback_start_time:
                 inputs['stn'] -= theta * states['stn']
                 theta_history[i] = theta
-                theta += substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - sigma * theta)
+                if abs(np.mean(states['stn'])) < 20:
+                    theta_dot = substrate.dt / tau_theta * (- tau_theta * sigma * theta)
+                else:
+                    theta_dot = substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - tau_theta * sigma * theta)
+                theta += theta_dot
+            # if t >= 3000:
+            #     inputs['stn'] -= 700
             for p in populations.keys():
                 states[p] += substrate.dt / populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():

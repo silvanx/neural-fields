@@ -52,23 +52,11 @@ def calculate_norm(ar, dx):
     return np.sum(np.square(ar)) * dx ** 2
 
 
-def calculate_dtheta(params, theta, states):
-    dt = params['substrate']['dt']
-    tau_theta = params['tau_theta']
-    sigma = params['sigma']
-    if abs(np.mean(states['stn'])) < params['feedback_threshold']:
-        dtheta = substrate.dt / tau_theta * (- tau_theta * sigma * theta)
-    else:
-        dtheta = substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - tau_theta * sigma * theta)
-    return dtheta
-
-
 def run_simulation(substrate, params):
     populations = {p.name: p for p in substrate.populations}
     w = generate_kernels(populations, params)
     theta_history = np.zeros(substrate.tt.shape)
     feedback_start_time = params['feedback_start_time']
-    suppression_start_time = params['ctx_suppression_start']
     theta = params['theta0']
     sigma = params['sigma']
     tau_theta = params['tau_theta']
@@ -85,11 +73,9 @@ def run_simulation(substrate, params):
                                                 for p in populations.keys()])
                                         for ri, r in enumerate(populations[pop].substrate_grid)])
             if feedback and t >= feedback_start_time:
-                inputs['stn'] -= theta * states['stn'] + params['ctx_nudge']
+                inputs['stn'] -= theta * states['stn']
                 theta_history[i] = theta
-                theta += calculate_dtheta(params, theta, states)
-            if t >= suppression_start_time:
-                inputs['stn'] -= params['ctx_suppression']
+                theta += substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - sigma * theta)
             for p in populations.keys():
                 states[p] += substrate.dt / populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
@@ -109,24 +95,22 @@ if __name__ == "__main__":
     max_delta = 20
     dx = params["substrate"]["dx"]
     plot_connectivity = False
-    feedback = params['feedback'] == 1
+    feedback = False
     average_feedback = False
 
+    params['feedback'] = feedback
     params['average_feedback'] = average_feedback
+    params['tags'] = ['explore_connectivity']
 
-    substrate = Substrate1D(params['substrate'], max_delta)
+    for scale in np.arange(0.3, 0.45, 0.01):
+        print('Running simulation for w_scale = {}'.format(scale))
+        params['W_scale'] = scale
 
-    populations = {name: Population1D(name, params['populations'][name], substrate) for name in params['populations']}
+        substrate = Substrate1D(params['substrate'], max_delta)
 
-    populations, w, theta_history = run_simulation(substrate, params)
+        populations = {name: Population1D(name, params['populations'][name], substrate) for name in params['populations']}
 
-    print("Simulation finished")
+        populations, w, theta_history = run_simulation(substrate, params)
 
-    print('The norm of w22 is ' + str(calculate_norm(w[('gpe', 'gpe')], dx)))
-    print('The norm of w12 is ' + str(calculate_norm(w[('stn', 'gpe')], dx)))
-    print('The norm of w21 is ' + str(calculate_norm(w[('gpe', 'stn')], dx)))
-
-    if plot_connectivity:
-        utils.plot_connectivity(w)
-    utils.plot_simulation_results(populations, theta_history)
-    utils.save_simulation_results(populations, theta_history, params)
+        print("Simulation finished")
+        utils.save_simulation_results(populations, theta_history, params)

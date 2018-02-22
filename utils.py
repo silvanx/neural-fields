@@ -66,3 +66,21 @@ def save_simulation_results(populations, theta_history, config):
     }
     with filename.open(mode='wb') as f:
         pickle.dump(result, f)
+
+
+def plot_steady_state_amplitude_vs_parameter(tag, param):
+    results = []
+    path = pathlib.Path('simulation_results')
+    for file in path.iterdir():
+        with file.open('rb') as f:
+            res = pickle.load(f)
+            if tag in res['config']['tags']:
+                par = res['config'][param]
+                ampl = res['populations']['stn'].get_tail(1000).ptp()
+                results.append((par, ampl))
+    results.sort(key=lambda tup: tup[0])
+    p, a = zip(*results)
+    py.plot(p, a, 'bo-')
+    py.ylabel('Steady-state amplitude (peak-to-peak)')
+    py.xlabel(param)
+    py.show()
