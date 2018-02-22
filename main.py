@@ -63,6 +63,27 @@ def calculate_dtheta(params, theta, states):
     return dtheta
 
 
+def calculate_ctx_suppression(t, params):
+    amplitude = params["ctx_suppression"]
+    start = params["ctx_suppression_start"]
+    periodic = params["ctx_suppression_periodic"] == 1
+    period = params["ctx_suppression_period"]
+    dc = params["ctx_suppression_duty_cycle"]
+
+    if t > start and amplitude > 0:
+        if periodic:
+            t_elapsed = t - start
+            point_in_cycle = t_elapsed % period
+            if point_in_cycle > dc * period:
+                return 0
+            else:
+                return amplitude
+        else:
+            return amplitude
+    else:
+        return 0
+
+
 def run_simulation(substrate, params):
     populations = {p.name: p for p in substrate.populations}
     w = generate_kernels(populations, params)
@@ -88,8 +109,7 @@ def run_simulation(substrate, params):
                 inputs['stn'] -= theta * states['stn'] + params['ctx_nudge']
                 theta_history[i] = theta
                 theta += calculate_dtheta(params, theta, states)
-            if t >= suppression_start_time:
-                inputs['stn'] -= params['ctx_suppression']
+            inputs['stn'] += calculate_ctx_suppression(t, params)
             for p in populations.keys():
                 states[p] += substrate.dt / populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
