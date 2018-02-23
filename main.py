@@ -52,14 +52,16 @@ def calculate_norm(ar, dx):
     return np.sum(np.square(ar)) * dx ** 2
 
 
-def calculate_dtheta(params, theta, states):
+def calculate_dtheta(params, theta, states, ampl):
     dt = params['substrate']['dt']
     tau_theta = params['tau_theta']
     sigma = params['sigma']
-    if abs(np.mean(states['stn'])) < params['feedback_threshold']:
+    # if abs(np.mean(states['stn'])) < params['feedback_threshold']:
+    if ampl < params['feedback_threshold']:
         dtheta = substrate.dt / tau_theta * (- tau_theta * sigma * theta)
     else:
-        dtheta = substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - tau_theta * sigma * theta)
+        # dtheta = substrate.dt / tau_theta * (np.mean(states['stn']) ** 2 - tau_theta * sigma * theta)
+        dtheta = substrate.dt / tau_theta * (ampl ** 2 - tau_theta * sigma * theta)
     return dtheta
 
 
@@ -88,11 +90,13 @@ def run_simulation(substrate, params):
     populations = {p.name: p for p in substrate.populations}
     w = generate_kernels(populations, params)
     theta_history = np.zeros(substrate.tt.shape)
+    ctx_history = np.zeros(substrate.tt.shape)
+    ampl_history = np.zeros(substrate.tt.shape)
     feedback_start_time = params['feedback_start_time']
-    suppression_start_time = params['ctx_suppression_start']
     theta = params['theta0']
-    sigma = params['sigma']
-    tau_theta = params['tau_theta']
+    ampl = 0
+    dt = params['substrate']['dt']
+    filtering = params['filtering'] == 1
 
     for i, t in enumerate(substrate.tt):
         if i % 200 == 0:
@@ -108,14 +112,20 @@ def run_simulation(substrate, params):
             if feedback and t >= feedback_start_time:
                 inputs['stn'] -= theta * states['stn'] + params['ctx_nudge']
                 theta_history[i] = theta
-                theta += calculate_dtheta(params, theta, states)
-            inputs['stn'] += calculate_ctx_suppression(t, params)
+                if filtering:
+                    ampl = populations['stn'].filtered_tail_amplitude(int(params['filter_length'] / dt), params['filter_order'], params['filter_cutoff'])
+                else:
+                    ampl = populations['stn'].tail_amplitude(int(max_delta / dt))
+                theta += calculate_dtheta(params, theta, states, ampl)
+            ctx_history[i] = calculate_ctx_suppression(t, params)
+            ampl_history[i] = ampl
+            inputs['stn'] -= ctx_history[i]
             for p in populations.keys():
                 states[p] += substrate.dt / populations[p].tau * (-states[p] + populations[p].sigmoid(inputs[p]))
         for p in populations.keys():
             populations[p].update_state(i, states[p])
 
-    return populations, w, theta_history
+    return populations, w, theta_history, ctx_history, ampl_history
 
 if __name__ == "__main__":
     print('Delayed Neural Fields')
@@ -138,7 +148,7 @@ if __name__ == "__main__":
 
     populations = {name: Population1D(name, params['populations'][name], substrate) for name in params['populations']}
 
-    populations, w, theta_history = run_simulation(substrate, params)
+    populations, w, theta_history, ctx_history, ampl_history = run_simulation(substrate, params)
 
     print("Simulation finished")
 
@@ -148,5 +158,5 @@ if __name__ == "__main__":
 
     if plot_connectivity:
         utils.plot_connectivity(w)
-    utils.plot_simulation_results(populations, theta_history)
+    utils.plot_simulation_results(populations, theta_history, ctx_history, ampl_history, params)
     utils.save_simulation_results(populations, theta_history, params)

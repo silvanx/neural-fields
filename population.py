@@ -1,6 +1,7 @@
 import matplotlib.pyplot as py
 import numpy as np
 from scipy.interpolate import interp1d, interp2d
+from scipy import signal
 
 from control import *
 
@@ -108,8 +109,23 @@ class Population:
         return [self.__call__(x, s) for x, s in zip(self.substrate_grid, timepoints)]
 
     def last_state(self):
-        index = min(np.where(self.tt >= self.max_t)[0])
+        index = self.max_index
+        # index = min(np.where(self.tt >= self.max_t)[0])
         return self.history[index, :]
+
+    def tail_amplitude(self, length):
+        tail = self.get_tail(length)
+        return tail.ptp()
+
+    def filtered_tail_amplitude(self, length, order, cutoff):
+        fs = 1000 / self.substrate.dt
+        nyq = fs / 2
+
+        cutoff_norm = cutoff / nyq
+        tail = self.get_tail(length)
+        b, a = signal.butter(order, cutoff_norm)
+        filtered_tail = signal.lfilter(b, a, tail)
+        return filtered_tail.ptp()
 
 
 class Population1D(Population):

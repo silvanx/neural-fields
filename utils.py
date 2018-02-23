@@ -4,16 +4,28 @@ import pickle
 
 import matplotlib.pyplot as py
 import numpy as np
+from scipy import signal
 
 
-def plot_simulation_results(populations, theta_history):
+def plot_simulation_results(populations, theta_history, ctx_history, ampl_history, params):
     py.figure()
     py.subplot(211)
     populations['stn'].plot_history(False)
     py.legend([str(x) for x in populations['stn'].substrate_grid])
     py.subplot(212)
     populations['stn'].plot_history_average(False)
-    py.legend(['stn avg'])
+    cutoff = params['filter_cutoff']
+    order = params['filter_order']
+    fs = 1000 / populations['stn'].substrate.dt
+    nyq = fs / 2
+
+    cutoff_norm = cutoff / nyq
+    b, a = signal.butter(order, cutoff_norm)
+    sig = np.mean(populations['stn'].history, axis=1)
+    filtered_signal = signal.lfilter(b, a, sig)
+    py.plot(populations['stn'].substrate.tt, filtered_signal)
+    py.legend(['stn avg', 'x1_filtered'])
+    py.ylim([-150, 150])
     py.figure()
     py.subplot(211)
     populations['gpe'].plot_history(False)
@@ -23,6 +35,14 @@ def plot_simulation_results(populations, theta_history):
     py.legend(['gpe avg'])
     py.figure()
     py.plot(populations['stn'].substrate.tt, theta_history)
+    py.legend(['theta'])
+    py.figure()
+    py.plot(populations['stn'].substrate.tt, ctx_history)
+    py.legend(['ctx'])
+    py.figure()
+    py.plot(populations['stn'].substrate.tt, ampl_history)
+    py.legend(['ampl'])
+
 
     py.show()
 
@@ -83,4 +103,29 @@ def plot_steady_state_amplitude_vs_parameter(tag, param):
     py.plot(p, a, 'bo-')
     py.ylabel('Steady-state amplitude (peak-to-peak)')
     py.xlabel(param)
+    py.show()
+
+
+def plot_filter_specs(dt, cutoff, order):
+    fs = 1000 / dt
+    nyq = fs / 2
+
+    cutoff_norm = cutoff / nyq
+
+    b, a = signal.butter(order, cutoff_norm)
+    w, h = signal.freqz(b, a)
+    f = w * nyq / np.pi
+
+    py.figure()
+    py.subplot(211)
+    py.plot(f, np.abs(h))
+    py.xlim([0, 40])
+    py.plot(cutoff, 0.5 * np.sqrt(2), 'ko')
+    py.title('Amplitude response')
+    py.ylabel('Relative amplitude')
+    py.subplot(212)
+    py.plot(f, 180 * np.angle(h) / np.pi)
+    py.xlim([0, 40])
+    py.title('Phase response')
+    py.xlabel('Frequency [Hz]')
     py.show()
