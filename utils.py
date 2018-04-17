@@ -7,53 +7,30 @@ import numpy as np
 from scipy import signal
 
 
-def plot_simulation_results(populations, theta_history, ctx_history, ampl_history, params):
+def plot_simulation_results(populations, substrate, theta_history, ctx_history,
+                            ampl_history):
+    for p in populations:
+        py.figure()
+        py.subplot(211)
+        p.plot_history(False)
+        py.legend([str(x) for x in p.substrate_grid])
+        py.subplot(212)
+        p.plot_history_average(False)
+        py.legend(['{} avg'.format(p.name)])
     py.figure()
-    py.subplot(211)
-    populations['stn'].plot_history(False)
-    py.legend([str(x) for x in populations['stn'].substrate_grid])
-    py.subplot(212)
-    populations['stn'].plot_history_average(False)
-    cutoff = params['filter_cutoff']
-    order = params['filter_order']
-    fs = 1000 / populations['stn'].substrate.dt
-    nyq = fs / 2
-
-    cutoff_norm = cutoff / nyq
-    b, a = signal.butter(order, cutoff_norm)
-    sig = np.mean(populations['stn'].history, axis=1)
-    filtered_signal = signal.lfilter(b, a, sig)
-    py.plot(populations['stn'].substrate.tt, filtered_signal)
-    py.legend(['stn avg', 'x1_filtered'])
-    py.ylim([-150, 150])
-    py.figure()
-    py.subplot(211)
-    populations['gpe'].plot_history(False)
-    py.legend([str(x) for x in populations['gpe'].substrate_grid])
-    py.subplot(212)
-    populations['gpe'].plot_history_average(False)
-    py.legend(['gpe avg'])
-    py.figure()
-    py.plot(populations['stn'].substrate.tt, theta_history)
+    py.plot(substrate.tt, theta_history)
     py.legend(['theta'])
     py.figure()
-    py.plot(populations['stn'].substrate.tt, ctx_history)
+    py.plot(substrate.tt, ctx_history)
     py.legend(['ctx'])
     py.figure()
-    py.plot(populations['stn'].substrate.tt, ampl_history)
+    py.plot(substrate.tt, ampl_history)
     py.legend(['ampl'])
-
 
     py.show()
 
 
 def plot_connectivity(w, show=False):
-    # py.figure()
-    # wtotal = np.array([[g21(r2, r1, populations['stn'].mu, populations['gpe'].mu, params) for r2 in np.arange(0, 15 + dx, dx)]
-    #                               for r1 in np.arange(0, 15 + dx, dx)])
-    # py.imshow(wtotal)
-    #
-    # py.figure()
 
     wmin = np.min([np.min(ww) for ww in w.values()])
     wmax = np.max([np.max(ww) for ww in w.values()])
@@ -77,7 +54,8 @@ def save_simulation_results(populations, theta_history, config):
     path = pathlib.Path('simulation_results')
     if not path.exists():
         path.mkdir()
-    file = 'dnf_results_' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    date_string = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    file = 'dnf_results_' + date_string
     filename = path / file
     result = {
         'populations': populations,

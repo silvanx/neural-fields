@@ -4,14 +4,17 @@ import numpy as np
 class Substrate(object):
 
     def __init__(self, dim, params, max_delta):
-        """Create a new substrate with specified number of spatial dimensions, physical size and grain
+        """Create a new substrate with specified number of spatial dimensions, \
+        physical size and grain
         """
         if dim not in [1, 2, 3]:
             raise ValueError("Dimension should be 1, 2 or 3")
         self.dimensions = dim
-        self.physical_size = np.array([params['x_size']], dtype=float).flatten()
+        self.physical_size = np.array([params['x_size']],
+                                      dtype=float).flatten()
         if self.physical_size.shape[0] != dim:
-            raise TypeError("physical_size should have {} elements, has {}".format(dim, self.physical_size.shape[0]))
+            raise TypeError("physical_size should have {} elements, \
+                            has {}".format(dim, self.physical_size.shape[0]))
         self.dt = params['dt']
         self.dx = params['dx']
         self.grid = self.generate_grid(float(self.dx))
@@ -20,17 +23,21 @@ class Substrate(object):
         self.max_delta = max_delta
 
     def generate_grid(self, dx):
-        axes = [np.arange(0, self.physical_size[i] + dx, dx) for i in range(self.dimensions)]
+        axes = [np.arange(0, self.physical_size[i] + dx, dx)
+                for i in range(self.dimensions)]
         return np.meshgrid(*axes)
 
     def place_population(self, population):
         if population.dimensions != self.dimensions:
-            raise ValueError("Number of dimensions of the population does not match the number of\
-            dimensions of the substrate")
+            raise ValueError("Number of dimensions of the population does not \
+                             match the number of dimensions of the substrate")
         if np.any(population.physical_size > self.physical_size):
-            raise ValueError("All dimensions of the population have to be smaller than the substrate")
-        if np.any(np.array(population.starting_point) + np.array(population.physical_size) > self.physical_size):
-            raise ValueError("With this starting point the population exceeds the substrate")
+            raise ValueError("All dimensions of the population have to be \
+                             smaller than the substrate")
+        if np.any(np.array(population.starting_point) +
+                  np.array(population.physical_size) > self.physical_size):
+            raise ValueError("With this starting point the population exceeds \
+                             the substrate")
         self.populations.append(population)
 
 
@@ -41,7 +48,8 @@ class Substrate1D(Substrate):
     def place_population(self, population):
         super().place_population(population)
         return self.grid[0][np.all([self.grid[0] >= population.starting_point,
-                                    self.grid[0] <= population.starting_point + population.physical_size], axis=0)]
+                                    self.grid[0] <= population.starting_point +
+                                    population.physical_size], axis=0)]
 
 
 class Substrate2D(Substrate):
