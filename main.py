@@ -110,7 +110,8 @@ def calculate_ctx_suppression(t, params):
         return 0
 
 
-def simulation_step(i, t, field, ctx_history, ampl_history, theta_history, dt):
+def simulation_step(i, t, field, ctx_history, ampl_history, theta_history, dt,
+                    feedback_start_time, theta):
     ampl = 0
     populations = field['p']
     pop_names = list(OrderedDict(sorted(populations.items(),
@@ -133,16 +134,16 @@ def simulation_step(i, t, field, ctx_history, ampl_history, theta_history, dt):
             ])
         if feedback and t >= feedback_start_time:
             inputs[p1] -= theta * states[p1] + params['ctx_nudge']
+            # theta += calculate_dtheta(params, theta, states, ampl, p1)
             theta_history[i] = theta
-            if filtering:
-                ampl = populations[p1].filtered_tail_amplitude(
-                    int(params['filter_length'] / dt),
-                    params['filter_order'],
-                    params['filter_cutoff']
-                )
-            else:
-                ampl = populations[p1].tail_amplitude(int(max_delta / dt))
-            theta += calculate_dtheta(params, theta, states, ampl, p1)
+            # if filtering:
+            #     ampl = populations[p1].filtered_tail_amplitude(
+            #         int(params['filter_length'] / dt),
+            #         params['filter_order'],
+            #         params['filter_cutoff']
+            #     )
+            # else:
+            #     ampl = populations[p1].tail_amplitude(int(max_delta / dt))
         ctx_history[i] = calculate_ctx_suppression(t, params)
         ampl_history[i] = ampl
         inputs[p1] -= ctx_history[i]
@@ -158,17 +159,29 @@ def run_simulation(substrate, params, fields):
     ctx_history = np.zeros(substrate.tt.shape)
     ampl_history = np.zeros(substrate.tt.shape)
     feedback_start_time = params['feedback_start_time']
-    theta = params['theta0']
+    theta0 = params['theta0']
     ampl = 0
     dt = params['substrate']['dt']
     filtering = params['filtering'] == 1
+    tau_theta = params['tau_theta']
+    sigma = params['sigma']
 
+    theta = theta0
     for i, t in enumerate(substrate.tt):
         if i % 200 == 0:
             print('Time: {} ms'.format(t))
+        # TODO: update theta in a separate function
+        if feedback and t > feedback_start_time:
+            x1 = 0
+            for p in substrate.populations:
+                if p.order == 0:
+                    x1 += np.mean(p.last_state())
+            dtheta = substrate.dt / tau_theta * (abs(x1) - sigma * theta)
+            theta += dtheta
         for field in fields:
             simulation_step(i, t, field, ctx_history, ampl_history,
-                            theta_history, dt)
+                            theta_history, dt, feedback_start_time, theta)
+        # TODO: save history in a separate function
 
     populations = substrate.populations
     w = field['w']
@@ -208,6 +221,6 @@ if __name__ == "__main__":
 
     if plot_connectivity:
         utils.plot_connectivity(w)
-    utils.plot_simulation_results(populations, substrate, theta_history, ctx_history,
-                                  ampl_history)
+    utils.plot_simulation_results(populations, substrate, theta_history,
+                                  ctx_history, ampl_history)
     utils.save_simulation_results(populations, theta_history, params)
