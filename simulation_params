@@ -7,7 +7,7 @@
     "ntaps" : 128,
     "lowcut" : 10,
     "highcut" : 30,
-    "tail_len" : 150
+    "tail_len" : 32
   },
   "filter_cutoff": 25,
   "filter_length": 256,

@@ -8,7 +8,7 @@ from scipy import signal
 
 
 def plot_simulation_results(populations, substrate, theta_history, ctx_history,
-                            ampl_history, params):
+                            ampl_history, measured_state_history, params):
     for p in populations:
         py.figure()
         py.subplot(211)
@@ -24,20 +24,25 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
     py.plot(substrate.tt, ctx_history)
     py.legend(['ctx'])
     py.figure()
+    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, show=True)
 
+
+def plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, show=False):
     measured_signal = 0
     for p in populations:
         if p.order == 0:
             measured_signal += np.mean(p.history, axis=1) / 2
     py.plot(substrate.tt, measured_signal)
+    py.plot(substrate.tt, measured_state_history)
     b = make_filter(params)
     filtered_signal = np.convolve(measured_signal, b, mode='valid')
     py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
     py.plot(substrate.tt, ampl_history)
-    py.legend(['Measured signal', 'Filtered signal', 'Live filtered signal'])
-    py.title('Comparison of filtering, window length = {}'.format(params['filter']['tail_len']))
-    py.show()
-
+    py.legend(['Measured signal', 'Live measured signal', 'Filtered signal', 'Live filtered signal'])
+    py.title('Comparison of filtering, window length = {}, taps = {}'.format(params['filter']['tail_len'],
+                                                                             params['filter']['ntaps']))
+    if show:
+        py.show()
 
 def plot_connectivity(w, show=False):
 

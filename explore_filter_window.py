@@ -3,6 +3,8 @@ import json
 import pprint
 from collections import OrderedDict
 
+import matplotlib.pyplot as py
+
 import utils
 from control import *
 from population import Population1D
@@ -132,18 +134,15 @@ def update_feedback_gain(t, params, substrate, theta):
     filtering = params['filtering'] == 1
     dt = params['substrate']['dt']
     tail_len = params['filter']['tail_len']
-    i = t / dt
-    npoints = int(np.floor(tail_len / dt))
 
     x1 = 0
-    measured_state = 0
     ampl = 0
-    if filtering and i > npoints:
+    for p in substrate.populations:
+        if p.order == 0:
+            npoints = int(np.floor(tail_len / dt))
+            x1 += p.get_tail(npoints) / 2
+    if filtering and t >= params['feedback_start_time']:
         b = utils.make_filter(params)
-        for p in substrate.populations:
-            if p.order == 0:
-                x1 += p.get_tail(npoints) / 2
-        measured_state = x1[-1]
         x1 = np.convolve(x1, b, mode='valid')
         ampl = x1[-1]
         if np.ptp(x1) < 1:
@@ -155,20 +154,18 @@ def update_feedback_gain(t, params, substrate, theta):
         for p in substrate.populations:
             if p.order == 0:
                 x1 += np.mean(p.last_state())
-        measured_state = x1
 
     dtheta = substrate.dt / tau_theta * (abs(x1) - sigma * theta)
     if t > params['feedback_start_time']:
         theta += dtheta
 
-    return theta, ampl, measured_state
+    return theta, ampl
 
 
 def run_simulation(substrate, params, fields):
     theta_history = np.zeros(substrate.tt.shape)
     ctx_history = np.zeros(substrate.tt.shape)
     ampl_history = np.zeros(substrate.tt.shape)
-    measured_state_history = np.zeros(substrate.tt.shape)
     theta0 = params['theta0']
     dt = params['substrate']['dt']
     feedback = params['feedback'] == 1
@@ -181,19 +178,18 @@ def run_simulation(substrate, params, fields):
             print('Time: {} ms'.format(t))
 
         if feedback:
-            theta, ampl, measured_state = update_feedback_gain(t, params, substrate, theta)
+            theta, ampl = update_feedback_gain(t, params, substrate, theta)
         for field in fields:
             simulation_step(i, t, field, ctx_history, dt, feedback_start_time,
                             theta, feedback)
         # TODO: save history in a separate function
         ampl_history[i] = ampl
         theta_history[i] = theta
-        measured_state_history[i] = measured_state
 
     populations = substrate.populations
     w = fields[0]['w']
 
-    return populations, w, theta_history, ctx_history, ampl_history, measured_state_history
+    return populations, w, theta_history, ctx_history, ampl_history
 
 
 if __name__ == "__main__":
@@ -220,13 +216,14 @@ if __name__ == "__main__":
         for f in params['fields']
     ]
 
-    populations, w, theta_history, ctx_history, ampl_history, measured_state_history = \
-        run_simulation(substrate, params, fields)
+    for wl in range(1, 151, 1):
+        params['filter']['ntaps'] = wl
+        print('running simulation with filter window = {}'.format(wl))
+        populations, w, theta_history, ctx_history, ampl_history = run_simulation(substrate, params, fields)
+        py.figure()
+        utils.plot_filter_comparison(populations, substrate, params, ampl_history, False)
+        imgfile = 'filter_ntaps_{}.png'.format(wl)
+        py.savefig('plots/' + imgfile)
+        py.close()
 
     print("Simulation finished")
-
-    if plot_connectivity:
-        utils.plot_connectivity(w)
-    utils.plot_simulation_results(populations, substrate, theta_history,
-                                  ctx_history, ampl_history, measured_state_history, params)
-    utils.save_simulation_results(populations, theta_history, params)
