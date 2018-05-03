@@ -36,6 +36,7 @@ def get_connectivity(kernel, key, column, shape):
 
 def generate_kernels(populations, params):
     w_scale = params['W_scale']
+    dx = params['substrate']['dx']
     w = dict()
     pop_names = list(OrderedDict(sorted(populations.items(),
                                         key=lambda t: t[1].order)).keys())
@@ -96,12 +97,13 @@ def calculate_ctx_suppression(t, params):
 
 
 def simulation_step(i, t, field, ctx_history, dt,
-                    feedback_start_time, theta, feedback):
+                    feedback_start_time, theta, feedback, params):
     populations = field['p']
     pop_names = list(OrderedDict(sorted(populations.items(),
                                         key=lambda t: t[1].order)).keys())
     p1 = pop_names[0]
     w = field['w']
+    dx = params['substrate']['dx']
     states = {p.name: p.last_state() for p in populations.values()}
     if t >= 0:
         inputs = dict()
@@ -142,6 +144,7 @@ def update_feedback_gain(t, params, substrate, theta):
         b = utils.make_filter(params)
         for p in substrate.populations:
             if p.order == 0:
+                # TODO: Automatically count stn-like populations
                 x1 += p.get_tail(npoints) / 2
         measured_state = x1[-1]
         x1 = np.convolve(x1, b, mode='valid')
@@ -154,7 +157,8 @@ def update_feedback_gain(t, params, substrate, theta):
     else:
         for p in substrate.populations:
             if p.order == 0:
-                x1 += np.mean(p.last_state())
+                # TODO: Automatically count stn-like populations
+                x1 += np.mean(p.last_state()) / 2
         measured_state = x1
 
     dtheta = substrate.dt / tau_theta * (abs(x1) - sigma * theta)
@@ -184,7 +188,7 @@ def run_simulation(substrate, params, fields):
             theta, ampl, measured_state = update_feedback_gain(t, params, substrate, theta)
         for field in fields:
             simulation_step(i, t, field, ctx_history, dt, feedback_start_time,
-                            theta, feedback)
+                            theta, feedback, params)
         # TODO: save history in a separate function
         ampl_history[i] = ampl
         theta_history[i] = theta

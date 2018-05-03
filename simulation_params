@@ -5,7 +5,7 @@
   "filtering": 1,
   "filter" : {
     "ntaps" : 128,
-    "lowcut" : 10,
+    "lowcut" : 12,
     "highcut" : 30,
     "tail_len" : 32
   },
@@ -58,7 +58,7 @@
         "b": 70,
         "tau": 7,
         "x0": 10,
-        "axonal_speed": 7.5,
+        "axonal_speed": 1.1,
         "ext_activity": 0,
         "ext_connectivity": 0,
         "ext_periodic": 0
@@ -71,7 +71,7 @@
         "b": 17,
         "tau": 6,
         "x0": 7,
-        "axonal_speed": 3.0,
+        "axonal_speed": 0.7,
         "ext_activity": 0,
         "ext_connectivity": 0,
         "ext_periodic": 0

@@ -33,11 +33,11 @@ def plot_filter_comparison(populations, substrate, params, ampl_history, measure
         if p.order == 0:
             measured_signal += np.mean(p.history, axis=1) / 2
     py.plot(substrate.tt, measured_signal)
-    py.plot(substrate.tt, measured_state_history)
+    py.plot(substrate.tt, measured_state_history, '--')
     b = make_filter(params)
     filtered_signal = np.convolve(measured_signal, b, mode='valid')
     py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
-    py.plot(substrate.tt, ampl_history)
+    py.plot(substrate.tt, ampl_history, '--')
     py.legend(['Measured signal', 'Live measured signal', 'Filtered signal', 'Live filtered signal'])
     py.title('Comparison of filtering, window length = {}, taps = {}'.format(params['filter']['tail_len'],
                                                                              params['filter']['ntaps']))
