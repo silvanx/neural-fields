@@ -3,10 +3,16 @@
   "tau_theta": 0.01,
   "sigma": 0.05,
   "filtering": 1,
+  "filter" : {
+    "ntaps" : 128,
+    "lowcut" : 10,
+    "highcut" : 30,
+    "tail_len" : 150
+  },
   "filter_cutoff": 25,
   "filter_length": 256,
   "feedback": 1,
-  "feedback_start_time": 155,
+  "feedback_start_time": 250,
   "feedback_threshold": 30,
   "ctx_nudge": 1,
   "ctx_suppression": 0,
@@ -75,7 +81,7 @@
   "substrate": {
     "x_size": 15,
     "dx": 0.5,
-    "tstop": 400,
+    "tstop": 700,
     "dt": 0.1
   },
   "sigma12": 1.45,

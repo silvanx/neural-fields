@@ -8,7 +8,7 @@ from scipy import signal
 
 
 def plot_simulation_results(populations, substrate, theta_history, ctx_history,
-                            ampl_history):
+                            ampl_history, params):
     for p in populations:
         py.figure()
         py.subplot(211)
@@ -24,9 +24,18 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
     py.plot(substrate.tt, ctx_history)
     py.legend(['ctx'])
     py.figure()
-    py.plot(substrate.tt, ampl_history)
-    py.legend(['ampl'])
 
+    measured_signal = 0
+    for p in populations:
+        if p.order == 0:
+            measured_signal += np.mean(p.history, axis=1) / 2
+    py.plot(substrate.tt, measured_signal)
+    b = make_filter(params)
+    filtered_signal = np.convolve(measured_signal, b, mode='valid')
+    py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
+    py.plot(substrate.tt, ampl_history)
+    py.legend(['Measured signal', 'Filtered signal', 'Live filtered signal'])
+    py.title('Comparison of filtering, window length = {}'.format(params['filter']['tail_len']))
     py.show()
 
 
@@ -107,3 +116,15 @@ def plot_filter_specs(dt, cutoff, order):
     py.title('Phase response')
     py.xlabel('Frequency [Hz]')
     py.show()
+
+
+def make_filter(params):
+    dt = params['substrate']['dt']
+    fs = 1000 / dt
+    nyq = 0.5 * fs
+    ntaps = params['filter']['ntaps']
+    lowcut = params['filter']['lowcut']
+    highcut = params['filter']['highcut']
+    b = signal.firwin(ntaps, [lowcut, highcut], nyq=nyq, pass_zero=False,
+                      window='hamming', scale=False)
+    return b

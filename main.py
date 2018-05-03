@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 import pprint
 from collections import OrderedDict
 
@@ -7,7 +8,6 @@ import utils
 from control import *
 from population import Population1D
 from substrate import Substrate1D
-from scipy.signal import firwin
 
 
 def g12(r1, r2, mu1, mu2, params):
@@ -96,14 +96,12 @@ def calculate_ctx_suppression(t, params):
         return 0
 
 
-def simulation_step(i, t, field, ctx_history, ampl_history, theta_history, dt,
+def simulation_step(i, t, field, ctx_history, dt,
                     feedback_start_time, theta, feedback):
-    ampl = 0
     populations = field['p']
     pop_names = list(OrderedDict(sorted(populations.items(),
                                         key=lambda t: t[1].order)).keys())
     p1 = pop_names[0]
-    p2 = pop_names[1]
     w = field['w']
     states = {p.name: p.last_state() for p in populations.values()}
     if t >= 0:
@@ -120,9 +118,7 @@ def simulation_step(i, t, field, ctx_history, ampl_history, theta_history, dt,
             ])
         if feedback and t >= feedback_start_time:
             inputs[p1] -= theta * states[p1] + params['ctx_nudge']
-            theta_history[i] = theta
         ctx_history[i] = calculate_ctx_suppression(t, params)
-        ampl_history[i] = ampl
         inputs[p1] -= ctx_history[i]
         for p in populations.keys():
             states[p] += dt / populations[p].tau * \
@@ -131,27 +127,24 @@ def simulation_step(i, t, field, ctx_history, ampl_history, theta_history, dt,
         populations[p].update_state(i, states[p])
 
 
-def update_feedback_gain(params, substrate, theta):
+def update_feedback_gain(t, params, substrate, theta):
     tau_theta = params['tau_theta']
     sigma = params['sigma']
     filtering = params['filtering'] == 1
     dt = params['substrate']['dt']
+    tail_len = 150
+    i = math.floor(t / dt)
 
     x1 = 0
-    if filtering:
-        fs = 1000 / dt
-        nyq = 0.5 * fs
-        # TODO: filter params from params file
-        ntaps = 128
-        lowcut = 800
-        highcut = 900
-        tail_len = 150
-        b = firwin(ntaps, [lowcut, highcut], nyq=nyq, pass_zero=False, window='hamming', scale=False)
+    ampl = 0
+    if filtering and t >= params['feedback_start_time']:
+        b = utils.make_filter(params)
         for p in substrate.populations:
             if p.order == 0:
                 npoints = int(np.floor(tail_len / dt))
                 x1 += p.get_tail(npoints) / 2
         x1 = np.convolve(x1, b, mode='valid')
+        ampl = x1[-1]
         if np.ptp(x1) < 1:
             x1 = 0
         else:
@@ -163,9 +156,10 @@ def update_feedback_gain(params, substrate, theta):
                 x1 += np.mean(p.last_state())
 
     dtheta = substrate.dt / tau_theta * (abs(x1) - sigma * theta)
-    theta += dtheta
+    if t > params['feedback_start_time']:
+        theta += dtheta
 
-    return theta
+    return theta, ampl
 
 
 def run_simulation(substrate, params, fields):
@@ -173,25 +167,27 @@ def run_simulation(substrate, params, fields):
     ctx_history = np.zeros(substrate.tt.shape)
     ampl_history = np.zeros(substrate.tt.shape)
     theta0 = params['theta0']
-    ampl = 0
     dt = params['substrate']['dt']
     feedback = params['feedback'] == 1
     feedback_start_time = params['feedback_start_time']
 
     theta = theta0
+    ampl = 0
     for i, t in enumerate(substrate.tt):
         if i % 200 == 0:
             print('Time: {} ms'.format(t))
 
-        if feedback and t > feedback_start_time:
-            theta = update_feedback_gain(params, substrate, theta)
+        if feedback:
+            theta, ampl = update_feedback_gain(t, params, substrate, theta)
         for field in fields:
-            simulation_step(i, t, field, ctx_history, ampl_history,
-                            theta_history, dt, feedback_start_time, theta, feedback)
+            simulation_step(i, t, field, ctx_history, dt, feedback_start_time,
+                            theta, feedback)
         # TODO: save history in a separate function
+        ampl_history[i] = ampl
+        theta_history[i] = theta
 
     populations = substrate.populations
-    w = field['w']
+    w = fields[0]['w']
 
     return populations, w, theta_history, ctx_history, ampl_history
 
@@ -228,5 +224,5 @@ if __name__ == "__main__":
     if plot_connectivity:
         utils.plot_connectivity(w)
     utils.plot_simulation_results(populations, substrate, theta_history,
-                                  ctx_history, ampl_history)
+                                  ctx_history, ampl_history, params)
     utils.save_simulation_results(populations, theta_history, params)
