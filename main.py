@@ -129,6 +129,7 @@ def simulation_step(i, t, field, ctx_history, dt,
 
 
 def update_feedback_gain(t, params, substrate, theta):
+    feedback = params['feedback'] == 1
     tau_theta = params['tau_theta']
     sigma = params['sigma']
     filtering = params['filtering'] == 1
@@ -138,31 +139,32 @@ def update_feedback_gain(t, params, substrate, theta):
     npoints = int(np.floor(tail_len / dt))
 
     x1 = 0
-    measured_state = 0
     ampl = 0
     if filtering and i > npoints:
         b = utils.make_filter(params)
         for p in substrate.populations:
             if p.order == 0:
                 # TODO: Automatically count stn-like populations
-                x1 += p.get_tail(npoints) / 2
+                npop = 2
+                x1 += p.get_tail(npoints) / npop
         measured_state = x1[-1]
         x1 = np.convolve(x1, b, mode='valid')
         ampl = x1[-1]
+        # TODO: read in the dead-zone amplitude from config
         if np.ptp(x1) < 1:
             x1 = 0
         else:
             x1 = x1[-1]
-        # x1 = np.ptp(np.convolve(x1, b, mode='valid'))
     else:
         for p in substrate.populations:
             if p.order == 0:
                 # TODO: Automatically count stn-like populations
-                x1 += np.mean(p.last_state()) / 2
+                npop = 2
+                x1 += np.mean(p.last_state()) / npop
         measured_state = x1
 
     dtheta = substrate.dt / tau_theta * (abs(x1) - sigma * theta)
-    if t > params['feedback_start_time']:
+    if feedback and t > params['feedback_start_time']:
         theta += dtheta
 
     return theta, ampl, measured_state
@@ -179,14 +181,11 @@ def run_simulation(substrate, params, fields):
     feedback_start_time = params['feedback_start_time']
 
     theta = theta0
-    ampl = 0
-    measured_state = 0
     for i, t in enumerate(substrate.tt):
         if i % 200 == 0:
             print('Time: {} ms'.format(t))
 
-        if feedback:
-            theta, ampl, measured_state = update_feedback_gain(t, params, substrate, theta)
+        theta, ampl, measured_state = update_feedback_gain(t, params, substrate, theta)
         for field in fields:
             simulation_step(i, t, field, ctx_history, dt, feedback_start_time,
                             theta, feedback, params)
