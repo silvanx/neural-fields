@@ -36,12 +36,12 @@ def get_connectivity(kernel, key, column, shape):
 
 def generate_kernels(populations, params):
     w_scale = params['W_scale']
-    dx = params['substrate']['dx']
     w = dict()
     pop_names = list(OrderedDict(sorted(populations.items(),
                                         key=lambda t: t[1].order)).keys())
     p1 = pop_names[0]
     p2 = pop_names[1]
+    dx = populations[p1].substrate.dx
     print('Generating kernels for populations: {} {}'.format(p1, p2))
     w[(p1, p2)] = w_scale * np.array(
         [[g12(r1, r2, populations[p1].mu, populations[p2].mu, params)
@@ -64,10 +64,10 @@ def generate_kernels(populations, params):
 
 def add_field(field, substrate, params):
     p = {
-        name: Population1D(name, field[name], substrate)
-        for name in field
+        name: Population1D(name, field['populations'][name], substrate)
+        for name in field['populations']
     }
-    w = generate_kernels(p, params)
+    w = generate_kernels(p, field['connections'])
     return {"p": p, "w": w}
 
 
@@ -180,6 +180,7 @@ def run_simulation(substrate, params, fields):
 
     theta = theta0
     ampl = 0
+    measured_state = 0
     for i, t in enumerate(substrate.tt):
         if i % 200 == 0:
             print('Time: {} ms'.format(t))
