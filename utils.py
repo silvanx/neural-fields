@@ -21,7 +21,8 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
     py.plot(substrate.tt, theta_history)
     py.legend(['theta'])
     py.figure()
-    py.plot(substrate.tt, ctx_history)
+    for ch in ctx_history:
+        py.plot(substrate.tt, ch)
     py.legend(['ctx'])
     py.figure()
     plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, show=True)

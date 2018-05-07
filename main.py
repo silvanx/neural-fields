@@ -68,7 +68,8 @@ def add_field(field, substrate, params):
         for name in field['populations']
     }
     w = generate_kernels(p, field['connections'])
-    return {"p": p, "w": w}
+    c = field['cortex']
+    return {"p": p, "w": w, "c": c}
 
 
 def calculate_norm(ar, dx):
@@ -97,13 +98,13 @@ def calculate_ctx_suppression(t, params):
 
 
 def simulation_step(i, t, field, ctx_history, dt,
-                    feedback_start_time, theta, feedback, params):
+                    feedback_start_time, theta, feedback, ctx_params):
     populations = field['p']
     pop_names = list(OrderedDict(sorted(populations.items(),
                                         key=lambda t: t[1].order)).keys())
     p1 = pop_names[0]
     w = field['w']
-    dx = params['substrate']['dx']
+    dx = populations[p1].substrate.dx
     states = {p.name: p.last_state() for p in populations.values()}
     if t >= 0:
         inputs = dict()
@@ -118,8 +119,8 @@ def simulation_step(i, t, field, ctx_history, dt,
                 for ri, r in enumerate(populations[pop].substrate_grid)
             ])
         if feedback and t >= feedback_start_time:
-            inputs[p1] -= theta * states[p1] + params['ctx_nudge']
-        ctx_history[i] = calculate_ctx_suppression(t, params)
+            inputs[p1] -= theta * states[p1]
+        ctx_history[i] = calculate_ctx_suppression(t, ctx_params) + ctx_params['ctx_nudge']
         inputs[p1] -= ctx_history[i]
         for p in populations.keys():
             states[p] += dt / populations[p].tau * \
@@ -172,7 +173,7 @@ def update_feedback_gain(t, params, substrate, theta):
 
 def run_simulation(substrate, params, fields):
     theta_history = np.zeros(substrate.tt.shape)
-    ctx_history = np.zeros(substrate.tt.shape)
+    ctx_history = [np.zeros(substrate.tt.shape) for f in fields]
     ampl_history = np.zeros(substrate.tt.shape)
     measured_state_history = np.zeros(substrate.tt.shape)
     theta0 = params['theta0']
@@ -186,9 +187,9 @@ def run_simulation(substrate, params, fields):
             print('Time: {} ms'.format(t))
 
         theta, ampl, measured_state = update_feedback_gain(t, params, substrate, theta)
-        for field in fields:
-            simulation_step(i, t, field, ctx_history, dt, feedback_start_time,
-                            theta, feedback, params)
+        for fi, field in enumerate(fields):
+            simulation_step(i, t, field, ctx_history[fi], dt, feedback_start_time,
+                            theta, feedback, field["c"])
         # TODO: save history in a separate function
         ampl_history[i] = ampl
         theta_history[i] = theta

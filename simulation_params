@@ -11,15 +11,9 @@
    },
    "filter_cutoff":25,
    "filter_length":256,
-   "feedback":1,
+   "feedback":0,
    "feedback_start_time":250,
    "feedback_threshold":30,
-   "ctx_nudge":1,
-   "ctx_suppression":0,
-   "ctx_suppression_start":3000,
-   "ctx_suppression_periodic":1,
-   "ctx_suppression_period":4000,
-   "ctx_suppression_duty_cycle":0.6,
    "fields":[
       {
          "populations":{
@@ -58,6 +52,14 @@
             "K21":2.5,
             "K22":0.02,
             "W_scale":1
+         },
+         "cortex": {
+            "ctx_nudge":1,
+            "ctx_suppression":1000,
+            "ctx_suppression_start":400,
+            "ctx_suppression_periodic":1,
+            "ctx_suppression_period":100,
+            "ctx_suppression_duty_cycle":0.6
          }
       },
       {
@@ -97,6 +99,14 @@
             "K21":2.5,
             "K22":0.02,
             "W_scale":1
+         },
+         "cortex": {
+            "ctx_nudge":1,
+            "ctx_suppression":1000,
+            "ctx_suppression_start":350,
+            "ctx_suppression_periodic":1,
+            "ctx_suppression_period":100,
+            "ctx_suppression_duty_cycle":0.6
          }
       }
    ],
