@@ -10,8 +10,6 @@
       "tail_len":512,
       "deadzone":40
    },
-   "filter_cutoff":25,
-   "filter_length":256,
    "feedback":1,
    "feedback_start_time":700,
    "fields":[

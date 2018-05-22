@@ -17,17 +17,25 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
         py.subplot(212)
         p.plot_history_average(False)
         py.legend(['{} avg'.format(p.name)])
-    py.figure()
-    py.plot(substrate.tt, theta_history)
-    py.legend(['theta'])
+    # py.figure()
+    # py.plot(substrate.tt, theta_history)
+    # py.legend(['theta'])
     py.figure()
     for ch in ctx_history:
         py.plot(substrate.tt, ch)
     py.legend(['ctx'])
     py.figure()
-    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history)
+    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history,
+                           theta_history)
     if params['feedback'] == 0:
         plot_fft(measured_state_history, params)
+    else:
+        py.figure()
+        fs = 1000 / params['substrate']['dt']
+        f, t, Sxx = signal.spectrogram(measured_state_history, fs)
+        py.pcolormesh(t, f, Sxx)
+        py.xlabel('Time [s]')
+        py.ylabel('Frequency [Hz]')
     py.show()
 
 
@@ -47,24 +55,26 @@ def plot_fft(measured_state_history, params):
 
 
 def plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history,
-                           show=False):
-    py.subplot(211)
-    measured_signal = 0
-    for p in populations:
-        if p.order == 0:
-            measured_signal += np.mean(p.history, axis=1) / 2
-    py.plot(substrate.tt, measured_signal)
-    py.plot(substrate.tt, measured_state_history, '--')
+                           theta_history, show=False):
+    py.subplot(311)
+    # measured_signal = 0
+    # for p in populations:
+    #     if p.order == 0:
+    #         measured_signal += np.mean(p.history, axis=1) / 2
+    # py.plot(substrate.tt, measured_signal)
+    py.plot(substrate.tt, measured_state_history)
+    py.legend(['Measured signal'])
+    py.subplot(312)
     b, _ = make_filter(params)
-    filtered_signal = np.convolve(measured_signal, b, mode='valid')
+    filtered_signal = np.convolve(measured_state_history, b, mode='valid')
     py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
     py.plot(substrate.tt, ampl_history, '--')
-    py.legend(['Measured signal', 'Live measured signal', 'Filtered signal', 'Live filtered signal'])
+    py.legend(['Filtered signal', 'Live filtered signal'])
     py.title('Comparison of filtering, window length = {}, taps = {}'.format(params['filter']['tail_len'],
                                                                              params['filter']['ntaps']))
-    py.subplot(212)
-    py.plot(substrate.tt, ptp_history)
-    py.legend(['Running peak-to-peak amplitude of filtered signal'])
+    py.subplot(313)
+    py.plot(substrate.tt, ptp_history, substrate.tt, theta_history)
+    py.legend(['Running peak-to-peak amplitude of filtered signal', 'Theta'])
     if show:
         py.show()
 
@@ -161,12 +171,10 @@ def make_filter(params):
     dt = params['substrate']['dt']
     fs = 1000 / dt
     nyq = 0.5 * fs
-    ntaps = params['filter']['ntaps']
+    # ntaps = params['filter']['ntaps']
     lowcut = params['filter']['lowcut']
     highcut = params['filter']['highcut']
     ntaps, beta = signal.kaiserord(22.0, 4 / nyq)
     b = signal.firwin(ntaps, [lowcut, highcut], nyq=nyq, pass_zero=False,
                       window=('kaiser', beta), scale=False)
-    # window=('boxcar'), scale=False)
-    # print('Num taps: {}'.format(ntaps))
     return b, ntaps
