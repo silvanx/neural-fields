@@ -60,7 +60,7 @@
             "ctx_suppression_periodic":1,
             "ctx_suppression_period":2100,
             "ctx_suppression_duty_cycle":0.45,
-            "ctx_entrainment_amplitude":100,
+            "ctx_entrainment_amplitude":600,
             "ctx_entrainment_frequency":40,
             "ctx_entrainment_phase":0,
             "ctx_entrainment_start":0
@@ -70,7 +70,7 @@
    "substrate":{
       "x_size":15,
       "dx":0.3,
-      "tstop":7000,
+      "tstop":2000,
       "dt":0.5
    }
 }

@@ -25,7 +25,25 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
         py.plot(substrate.tt, ch)
     py.legend(['ctx'])
     py.figure()
-    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history, show=True)
+    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history)
+    if params['feedback'] == 0:
+        plot_fft(measured_state_history, params)
+    py.show()
+
+
+def plot_fft(measured_state_history, params):
+    py.figure()
+    n = len(measured_state_history)
+    k = np.arange(n)
+    fs = 1000 / params['substrate']['dt']
+    T = n / fs
+    frq = k / T
+    frq = frq[range(int(n / 2))]
+    Y = np.fft.fft(measured_state_history) / n
+    Y = Y[range(int(n / 2))]
+    py.plot(frq, abs(Y), 'r')
+    py.xlabel('Freq (Hz)')
+    py.ylabel('|FFT(freq)|')
 
 
 def plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history,
@@ -49,6 +67,7 @@ def plot_filter_comparison(populations, substrate, params, ampl_history, measure
     py.legend(['Running peak-to-peak amplitude of filtered signal'])
     if show:
         py.show()
+
 
 def plot_connectivity(w, show=False):
 
