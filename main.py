@@ -76,25 +76,31 @@ def calculate_norm(ar, dx):
     return np.sum(np.square(ar)) * dx ** 2
 
 
-def calculate_ctx_suppression(t, params):
-    amplitude = params["ctx_suppression"]
-    start = params["ctx_suppression_start"]
-    periodic = params["ctx_suppression_periodic"] == 1
-    period = params["ctx_suppression_period"]
-    dc = params["ctx_suppression_duty_cycle"]
+def calculate_ctx(t, params):
+    sup_amplitude = params["ctx_suppression"]
+    sup_start = params["ctx_suppression_start"]
+    sup_periodic = params["ctx_suppression_periodic"] == 1
+    sup_period = params["ctx_suppression_period"]
+    sup_dc = params["ctx_suppression_duty_cycle"]
 
-    if t > start and amplitude > 0:
-        if periodic:
-            t_elapsed = t - start
-            point_in_cycle = t_elapsed % period
-            if point_in_cycle > dc * period:
-                return 0
-            else:
-                return amplitude
+    supression = 0
+    if t > sup_start and sup_amplitude > 0:
+        if sup_periodic:
+            t_elapsed = t - sup_start
+            point_in_cycle = t_elapsed % sup_period
+            if point_in_cycle <= sup_dc * sup_period:
+                supression = sup_amplitude
         else:
-            return amplitude
-    else:
-        return 0
+            supression = sup_amplitude
+
+    en_amplitude = params["ctx_entrainment_amplitude"]
+    en_frequency = params["ctx_entrainment_frequency"]
+    en_phase = params["ctx_entrainment_phase"]
+    en_start = params["ctx_entrainment_start"]
+    tt = (t - en_start) / 1000
+    entrainment = en_amplitude * np.sin(tt * 2 * np.pi * en_frequency + en_phase)
+
+    return supression + entrainment
 
 
 def simulation_step(i, t, field, ctx_history, dt,
@@ -120,7 +126,7 @@ def simulation_step(i, t, field, ctx_history, dt,
             ])
         if feedback and t >= feedback_start_time:
             inputs[p1] -= theta * states[p1]
-        ctx_history[i] = calculate_ctx_suppression(t, ctx_params) + ctx_params['ctx_nudge']
+        ctx_history[i] = calculate_ctx(t, ctx_params) + ctx_params['ctx_nudge']
         inputs[p1] -= ctx_history[i]
         for p in populations.keys():
             states[p] += dt / populations[p].tau * \
@@ -136,13 +142,15 @@ def update_feedback_gain(t, params, substrate, theta):
     filtering = params['filtering'] == 1
     dt = params['substrate']['dt']
     tail_len = params['filter']['tail_len']
+    deadzone = params['filter']['deadzone']
     i = t / dt
     npoints = int(np.floor(tail_len / dt))
 
     x1 = 0
     ampl = 0
+    ptp = 0
     if filtering and i > npoints:
-        b = utils.make_filter(params)
+        b, _ = utils.make_filter(params)
         for p in substrate.populations:
             if p.order == 0:
                 # TODO: Automatically count stn-like populations
@@ -151,24 +159,26 @@ def update_feedback_gain(t, params, substrate, theta):
         measured_state = x1[-1]
         x1 = np.convolve(x1, b, mode='valid')
         ampl = x1[-1]
-        # TODO: read in the dead-zone amplitude from config
-        if np.ptp(x1) < 1:
+        ptp = np.ptp(x1)
+        if ptp < deadzone:
             x1 = 0
         else:
-            x1 = x1[-1]
+            # x1 = x1[-1]
+            x1 = ptp
     else:
         for p in substrate.populations:
             if p.order == 0:
                 # TODO: Automatically count stn-like populations
                 npop = 2
-                x1 += np.mean(p.last_state()) / npop
-        measured_state = x1
+                x1 += p.get_tail(npoints) / npop
+        measured_state = x1[-1] if len(x1) > 0 else 0
+        x1 = measured_state
 
     dtheta = substrate.dt / tau_theta * (abs(x1) - sigma * theta)
     if feedback and t > params['feedback_start_time']:
         theta += dtheta
 
-    return theta, ampl, measured_state
+    return theta, ampl, measured_state, ptp
 
 
 def run_simulation(substrate, params, fields):
@@ -176,6 +186,7 @@ def run_simulation(substrate, params, fields):
     ctx_history = [np.zeros(substrate.tt.shape) for f in fields]
     ampl_history = np.zeros(substrate.tt.shape)
     measured_state_history = np.zeros(substrate.tt.shape)
+    ptp_history = np.zeros(substrate.tt.shape)
     theta0 = params['theta0']
     dt = params['substrate']['dt']
     feedback = params['feedback'] == 1
@@ -186,7 +197,7 @@ def run_simulation(substrate, params, fields):
         if i % 200 == 0:
             print('Time: {} ms'.format(t))
 
-        theta, ampl, measured_state = update_feedback_gain(t, params, substrate, theta)
+        theta, ampl, measured_state, ptp = update_feedback_gain(t, params, substrate, theta)
         for fi, field in enumerate(fields):
             simulation_step(i, t, field, ctx_history[fi], dt, feedback_start_time,
                             theta, feedback, field["c"])
@@ -194,11 +205,12 @@ def run_simulation(substrate, params, fields):
         ampl_history[i] = ampl
         theta_history[i] = theta
         measured_state_history[i] = measured_state
+        ptp_history[i] = ptp
 
     populations = substrate.populations
     w = fields[0]['w']
 
-    return populations, w, theta_history, ctx_history, ampl_history, measured_state_history
+    return populations, w, theta_history, ctx_history, ampl_history, measured_state_history, ptp_history
 
 
 if __name__ == "__main__":
@@ -214,9 +226,15 @@ if __name__ == "__main__":
     max_delta = 20
     dx = params["substrate"]["dx"]
     plot_connectivity = False
+    plot_filter = False
     average_feedback = False
 
     params['average_feedback'] = average_feedback
+    b, ntaps = utils.make_filter(params)
+    print('Filter order: {}'.format(ntaps))
+    if plot_filter:
+        utils.plot_filter_specs(b, params['substrate']['dt'], params['filter']['lowcut'], params['filter']['highcut'])
+    params['filter']['ntaps'] = ntaps
 
     substrate = Substrate1D(params['substrate'], max_delta)
 
@@ -225,7 +243,7 @@ if __name__ == "__main__":
         for f in params['fields']
     ]
 
-    populations, w, theta_history, ctx_history, ampl_history, measured_state_history = \
+    populations, w, theta_history, ctx_history, ampl_history, measured_state_history, ptp_history = \
         run_simulation(substrate, params, fields)
 
     print("Simulation finished")
@@ -233,5 +251,5 @@ if __name__ == "__main__":
     if plot_connectivity:
         utils.plot_connectivity(w)
     utils.plot_simulation_results(populations, substrate, theta_history,
-                                  ctx_history, ampl_history, measured_state_history, params)
+                                  ctx_history, ampl_history, measured_state_history, ptp_history, params)
     utils.save_simulation_results(populations, theta_history, params)

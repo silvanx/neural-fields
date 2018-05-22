@@ -8,7 +8,7 @@ from scipy import signal
 
 
 def plot_simulation_results(populations, substrate, theta_history, ctx_history,
-                            ampl_history, measured_state_history, params):
+                            ampl_history, measured_state_history, ptp_history, params):
     for p in populations:
         py.figure()
         py.subplot(211)
@@ -25,23 +25,28 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
         py.plot(substrate.tt, ch)
     py.legend(['ctx'])
     py.figure()
-    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, show=True)
+    plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history, show=True)
 
 
-def plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, show=False):
+def plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history,
+                           show=False):
+    py.subplot(211)
     measured_signal = 0
     for p in populations:
         if p.order == 0:
             measured_signal += np.mean(p.history, axis=1) / 2
     py.plot(substrate.tt, measured_signal)
     py.plot(substrate.tt, measured_state_history, '--')
-    b = make_filter(params)
+    b, _ = make_filter(params)
     filtered_signal = np.convolve(measured_signal, b, mode='valid')
     py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
     py.plot(substrate.tt, ampl_history, '--')
     py.legend(['Measured signal', 'Live measured signal', 'Filtered signal', 'Live filtered signal'])
     py.title('Comparison of filtering, window length = {}, taps = {}'.format(params['filter']['tail_len'],
                                                                              params['filter']['ntaps']))
+    py.subplot(212)
+    py.plot(substrate.tt, ptp_history)
+    py.legend(['Running peak-to-peak amplitude of filtered signal'])
     if show:
         py.show()
 
@@ -81,6 +86,14 @@ def save_simulation_results(populations, theta_history, config):
         pickle.dump(result, f)
 
 
+def load_simulation_results(filename):
+    path = pathlib.Path('simulation_results')
+    fullpath = path / filename
+    with fullpath.open(mode='rb') as f:
+        results = pickle.load(f)
+    return results
+
+
 def plot_steady_state_amplitude_vs_parameter(tag, param):
     results = []
     path = pathlib.Path('simulation_results')
@@ -99,28 +112,29 @@ def plot_steady_state_amplitude_vs_parameter(tag, param):
     py.show()
 
 
-def plot_filter_specs(dt, cutoff, order):
+def plot_filter_specs(b, dt, lowcut=0, highcut=50):
     fs = 1000 / dt
     nyq = fs / 2
 
-    cutoff_norm = cutoff / nyq
-
-    b, a = signal.butter(order, cutoff_norm)
-    w, h = signal.freqz(b, a)
-    f = w * nyq / np.pi
+    w, h = signal.freqz(b, 1)
+    h_dB = 20 * np.log10(abs(h))
+    h_Phase = np.unwrap(np.arctan2(np.imag(h), np.real(h)))
 
     py.figure()
-    py.subplot(211)
-    py.plot(f, np.abs(h))
-    py.xlim([0, 40])
-    py.plot(cutoff, 0.5 * np.sqrt(2), 'ko')
-    py.title('Amplitude response')
-    py.ylabel('Relative amplitude')
-    py.subplot(212)
-    py.plot(f, 180 * np.angle(h) / np.pi)
-    py.xlim([0, 40])
-    py.title('Phase response')
+    # py.subplot(211)
+    py.plot(w / max(w) * nyq, h_dB)
+    # py.xlim([0, 40])
+    py.title('Amplitude response, filter order: {}'.format(len(b) - 1))
+    py.ylabel('Relative amplitude [dB]')
     py.xlabel('Frequency [Hz]')
+    # py.subplot(212)
+    # py.plot(w / max(w) * nyq, h_Phase)
+    # py.xlim([0, 40])
+    # py.title('Phase response')
+    # py.xlabel('Frequency [Hz]')
+    axes = py.gca()
+    axes.axvspan(lowcut, highcut, color='grey', alpha=0.6)
+    py.savefig('filter_specs.pdf', format='pdf', bbox_inches='tight')
     py.show()
 
 
@@ -131,6 +145,9 @@ def make_filter(params):
     ntaps = params['filter']['ntaps']
     lowcut = params['filter']['lowcut']
     highcut = params['filter']['highcut']
+    ntaps, beta = signal.kaiserord(22.0, 4 / nyq)
     b = signal.firwin(ntaps, [lowcut, highcut], nyq=nyq, pass_zero=False,
-                      window='hamming', scale=False)
-    return b
+                      window=('kaiser', beta), scale=False)
+    # window=('boxcar'), scale=False)
+    # print('Num taps: {}'.format(ntaps))
+    return b, ntaps
