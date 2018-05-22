@@ -1,7 +1,7 @@
 {
    "theta0":0,
    "tau_theta":100,
-   "sigma":0.5,
+   "sigma":0,
    "filtering":1,
    "filter":{
       "ntaps":160,
@@ -58,7 +58,7 @@
             "ctx_suppression_periodic":1,
             "ctx_suppression_period":2100,
             "ctx_suppression_duty_cycle":0.45,
-            "ctx_entrainment_amplitude":500,
+            "ctx_entrainment_amplitude":200,
             "ctx_entrainment_frequency":25,
             "ctx_entrainment_phase":0,
             "ctx_entrainment_start":0
@@ -68,7 +68,7 @@
    "substrate":{
       "x_size":15,
       "dx":0.3,
-      "tstop":6000,
-      "dt":0.5
+      "tstop":5000,
+      "dt":0.3
    }
 }

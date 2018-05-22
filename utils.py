@@ -99,7 +99,8 @@ def plot_connectivity(w, show=False):
         py.show()
 
 
-def save_simulation_results(populations, theta_history, config):
+def save_simulation_results(populations, theta_history, ctx_history, ampl_history, measured_state_history,
+                            ptp_history, config):
     path = pathlib.Path('simulation_results')
     if not path.exists():
         path.mkdir()
@@ -109,6 +110,10 @@ def save_simulation_results(populations, theta_history, config):
     result = {
         'populations': populations,
         'theta_history': theta_history,
+        'ctx_history': ctx_history,
+        'ampl_history': ampl_history,
+        'measured_state_history': measured_state_history,
+        'ptp_history': ptp_history,
         'config': config
     }
     with filename.open(mode='wb') as f:

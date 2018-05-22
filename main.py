@@ -252,4 +252,5 @@ if __name__ == "__main__":
         utils.plot_connectivity(w)
     utils.plot_simulation_results(populations, substrate, theta_history,
                                   ctx_history, ampl_history, measured_state_history, ptp_history, params)
-    utils.save_simulation_results(populations, theta_history, params)
+    utils.save_simulation_results(populations, theta_history, ctx_history, ampl_history, measured_state_history,
+                                  ptp_history, params)
