@@ -98,7 +98,7 @@ def calculate_ctx(t, params):
     en_phase = params["ctx_entrainment_phase"]
     en_start = params["ctx_entrainment_start"]
     tt = (t - en_start) / 1000
-    entrainment = en_amplitude * np.sin(tt * 2 * np.pi * en_frequency + en_phase)
+    entrainment = en_amplitude * np.sin(tt * 2 * np.pi * en_frequency + en_phase) if tt >= 0 else 0
 
     return supression + entrainment
 
