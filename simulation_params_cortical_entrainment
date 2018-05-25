@@ -10,7 +10,7 @@
       "tail_len":512,
       "deadzone":1
    },
-   "feedback":1,
+   "feedback":0,
    "feedback_start_time":1500,
    "fields":[
       {
@@ -49,7 +49,7 @@
             "K12":2,
             "K21":2.5,
             "K22":0.02,
-            "W_scale":0.1
+            "W_scale":1
          },
          "cortex": {
             "ctx_nudge":0,
@@ -59,7 +59,7 @@
             "ctx_suppression_period":2100,
             "ctx_suppression_duty_cycle":0.45,
             "ctx_entrainment_amplitude":200,
-            "ctx_entrainment_frequency":19,
+            "ctx_entrainment_frequency":40,
             "ctx_entrainment_phase":0,
             "ctx_entrainment_start":1000
          }
@@ -68,7 +68,7 @@
    "substrate":{
       "x_size":15,
       "dx":0.3,
-      "tstop":6000,
+      "tstop":2000,
       "dt":0.5
    }
 }

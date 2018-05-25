@@ -3,6 +3,8 @@ import json
 import pprint
 from collections import OrderedDict
 
+import matplotlib.pyplot as py
+
 import utils
 from control import *
 from population import Population1D
@@ -10,8 +12,13 @@ from substrate import Substrate1D
 
 
 def g12(r1, r2, mu1, mu2, params):
-    x = r2 - r1 - (2 * mu1 + 10)
-    return np.float(-params["K12"] * np.exp(-x ** 2 / (2 * params["sigma12"])))
+    # x = r2 - r1 - (2 * mu1 + 10)
+    x1 = (r2 - mu2) - (r1 - mu1)
+    x2 = (r1 - mu1) + (r2 - mu2)
+    s1 = params['sigma12']
+    s2 = s1 * 2
+    # return np.float(-params["K12"] * np.exp(-x ** 2 / (2 * params["sigma12"])))
+    return np.float(-params["K12"] * np.exp(-(x1 ** 2 / (2 * s1) + x2 ** 2 / (2 * s2))))
 
 
 def g22(r1, r2, mu1, mu2, params):
@@ -23,8 +30,11 @@ def g22(r1, r2, mu1, mu2, params):
 def g21(r1, r2, mu1, mu2, params):
     # r1 -> gpe; r2 -> stn
     # x = abs(abs(r1 - mu1) - abs(r2 - mu2))
-    x = r2 - r1 + (2 * mu1 + 10)
-    return np.float(params["K21"] * np.exp(-x ** 2 / (2 * params["sigma21"])))
+    x1 = (r2 - mu2) - (r1 - mu1)
+    x2 = (r1 - mu1) + (r2 - mu2)
+    s1 = params['sigma12']
+    s2 = s1 * 2
+    return np.float(params["K21"] * np.exp(-(x1 ** 2 / (2 * s1) + x2 ** 2 / (2 * s2))))
 
 
 def get_connectivity(kernel, key, column, shape):
@@ -48,7 +58,7 @@ def generate_kernels(populations, params):
           for r2 in populations[p2].substrate_grid]
          for r1 in populations[p1].substrate_grid])
     w[(p2, p1)] = w_scale * np.array(
-        [[g21(r1, r2, populations[p1].mu, populations[p2].mu, params)
+        [[g21(r1, r2, populations[p2].mu, populations[p1].mu, params)
           for r2 in populations[p1].substrate_grid]
          for r1 in populations[p2].substrate_grid])
     w[(p2, p2)] = w_scale * np.array(
@@ -225,9 +235,10 @@ if __name__ == "__main__":
     # TODO: Calculate max delta
     max_delta = 20
     dx = params["substrate"]["dx"]
-    plot_connectivity = False
+    plot_connectivity = True
     plot_filter = False
     average_feedback = False
+
 
     params['average_feedback'] = average_feedback
     b, ntaps = utils.make_filter(params)
@@ -243,13 +254,16 @@ if __name__ == "__main__":
         for f in params['fields']
     ]
 
+    w = fields[0]['w']
+    if plot_connectivity:
+        utils.plot_connectivity(w)
+        py.show()
+
     populations, w, theta_history, ctx_history, ampl_history, measured_state_history, ptp_history = \
         run_simulation(substrate, params, fields)
 
     print("Simulation finished")
 
-    if plot_connectivity:
-        utils.plot_connectivity(w)
     utils.plot_simulation_results(populations, substrate, theta_history,
                                   ctx_history, ampl_history, measured_state_history, ptp_history, params)
     utils.save_simulation_results(populations, theta_history, ctx_history, ampl_history, measured_state_history,
