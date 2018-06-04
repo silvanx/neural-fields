@@ -103,6 +103,7 @@ def calculate_ctx(t, params):
         else:
             supression = sup_amplitude
 
+    # TODO: set to zero when not present
     en_amplitude = params["ctx_entrainment_amplitude"]
     en_frequency = params["ctx_entrainment_frequency"]
     en_phase = params["ctx_entrainment_phase"]
@@ -164,7 +165,7 @@ def update_feedback_gain(t, params, substrate, theta):
         for p in substrate.populations:
             if p.order == 0:
                 # TODO: Automatically count stn-like populations
-                npop = 2
+                npop = 1
                 x1 += p.get_tail(npoints) / npop
         measured_state = x1[-1]
         x1 = np.convolve(x1, b, mode='valid')
@@ -179,7 +180,7 @@ def update_feedback_gain(t, params, substrate, theta):
         for p in substrate.populations:
             if p.order == 0:
                 # TODO: Automatically count stn-like populations
-                npop = 2
+                npop = 1
                 x1 += p.get_tail(npoints) / npop
         measured_state = x1[-1] if len(x1) > 0 else 0
         x1 = measured_state
@@ -235,7 +236,7 @@ if __name__ == "__main__":
     # TODO: Calculate max delta
     max_delta = 20
     dx = params["substrate"]["dx"]
-    plot_connectivity = True
+    plot_connectivity = False
     plot_filter = False
     average_feedback = False
 

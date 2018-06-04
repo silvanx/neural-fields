@@ -2,6 +2,7 @@ import datetime
 import pathlib
 import pickle
 
+import matplotlib
 import matplotlib.pyplot as py
 import numpy as np
 from scipy import signal
@@ -56,25 +57,33 @@ def plot_fft(measured_state_history, params):
 
 def plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history,
                            theta_history, show=False):
+    py.figure(figsize=(19.0988, 10))
+    matplotlib.rc('xtick', labelsize=13)
+    matplotlib.rc('ytick', labelsize=13)
     py.subplot(311)
-    # measured_signal = 0
-    # for p in populations:
-    #     if p.order == 0:
-    #         measured_signal += np.mean(p.history, axis=1) / 2
-    # py.plot(substrate.tt, measured_signal)
-    py.plot(substrate.tt, measured_state_history)
-    py.legend(['Measured signal'])
+    py.ylabel('Activity [spk/s]', fontsize=13)
+    measured_signal = 0
+    for p in populations:
+        if p.order == 0:
+            measured_signal += np.mean(p.history, axis=1)
+    py.plot(substrate.tt, measured_signal)
+    # py.plot(substrate.tt, measured_state_history)
+    py.legend(['Measured signal'], fontsize=13)
     py.subplot(312)
-    b, _ = make_filter(params)
-    filtered_signal = np.convolve(measured_state_history, b, mode='valid')
-    py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
-    py.plot(substrate.tt, ampl_history, '--')
-    py.legend(['Filtered signal', 'Live filtered signal'])
-    py.title('Comparison of filtering, window length = {}, taps = {}'.format(params['filter']['tail_len'],
-                                                                             params['filter']['ntaps']))
+    py.ylabel('Activity [spk/s]', fontsize=13)
+    # b, _ = make_filter(params)
+    # filtered_signal = np.convolve(measured_state_history, b, mode='valid')
+    # py.plot(substrate.tt[params['filter']['ntaps'] - 1:], filtered_signal)
+    py.plot(substrate.tt, ampl_history)
+    py.legend(['Filtered signal'], fontsize=13)
+    # py.legend(['Filtered signal', 'Live filtered signal'], fontsize=13)
+    # py.title('Comparison of filtering, window length = {}, taps = {}'.format(params['filter']['tail_len'],
+    #                                                                          params['filter']['ntaps']), fontsize=13)
+    py.title('Bandpass-filtered signal')
     py.subplot(313)
     py.plot(substrate.tt, ptp_history, substrate.tt, theta_history)
-    py.legend(['Running peak-to-peak amplitude of filtered signal', 'Theta'])
+    py.legend(['Running peak-to-peak amplitude of filtered signal', 'Theta'], fontsize=13)
+    py.xlabel('Time [ms]', fontsize=13)
     if show:
         py.show()
 
@@ -84,16 +93,20 @@ def plot_connectivity(w, show=False):
     wmin = np.min([np.min(ww) for ww in w.values()])
     wmax = np.max([np.max(ww) for ww in w.values()])
 
-    py.figure()
+    py.figure(figsize=(14.3241, 7.5))
+    matplotlib.rc('xtick', labelsize=13)
+    matplotlib.rc('ytick', labelsize=13)
+    py.subplots_adjust(right=0.8)
     py.subplot(222)
     py.imshow(w[('stn', 'gpe')], cmap='RdBu', vmin=wmin, vmax=wmax)
-    py.title('stn-gpe')
+    py.title('STN-GPe', fontsize=13)
+    py.colorbar()
     py.subplot(223)
     py.imshow(w[('gpe', 'stn')], cmap='RdBu', vmin=wmin, vmax=wmax)
-    py.title('gpe-stn')
+    py.title('GPe-STN', fontsize=13)
     py.subplot(224)
     py.imshow(w[('gpe', 'gpe')], cmap='RdBu', vmin=wmin, vmax=wmax)
-    py.title('gpe-gpe')
+    py.title('GPe-GPe', fontsize=13)
 
     if show:
         py.show()
@@ -154,13 +167,16 @@ def plot_filter_specs(b, dt, lowcut=0, highcut=50):
     h_dB = 20 * np.log10(abs(h))
     h_Phase = np.unwrap(np.arctan2(np.imag(h), np.real(h)))
 
-    py.figure()
+    py.figure(figsize=(19.0988, 10))
+    matplotlib.rc('xtick', labelsize=13)
+    matplotlib.rc('ytick', labelsize=13)
+    # py.figure()
     # py.subplot(211)
     py.plot(w / max(w) * nyq, h_dB)
     # py.xlim([0, 40])
-    py.title('Amplitude response, filter order: {}'.format(len(b) - 1))
-    py.ylabel('Relative amplitude [dB]')
-    py.xlabel('Frequency [Hz]')
+    py.title('Amplitude response, filter order: {}'.format(len(b) - 1), fontsize=13)
+    py.ylabel('Relative amplitude [dB]', fontsize=-13)
+    py.xlabel('Frequency [Hz]', fontsize=13)
     # py.subplot(212)
     # py.plot(w / max(w) * nyq, h_Phase)
     # py.xlim([0, 40])
@@ -179,7 +195,7 @@ def make_filter(params):
     # ntaps = params['filter']['ntaps']
     lowcut = params['filter']['lowcut']
     highcut = params['filter']['highcut']
-    ntaps, beta = signal.kaiserord(22.0, 4 / nyq)
+    ntaps, beta = signal.kaiserord(40, 8 / nyq)
     b = signal.firwin(ntaps, [lowcut, highcut], nyq=nyq, pass_zero=False,
                       window=('kaiser', beta), scale=False)
     return b, ntaps

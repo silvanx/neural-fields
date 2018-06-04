@@ -10,8 +10,8 @@
       "tail_len":512,
       "deadzone":1
    },
-   "feedback":0,
-   "feedback_start_time":1500,
+   "feedback":1,
+   "feedback_start_time":500,
    "fields":[
       {
          "populations":{
@@ -53,12 +53,12 @@
          },
          "cortex": {
             "ctx_nudge":0,
-            "ctx_suppression":0,
-            "ctx_suppression_start":1300,
+            "ctx_suppression":1000,
+            "ctx_suppression_start":2000,
             "ctx_suppression_periodic":1,
             "ctx_suppression_period":2100,
             "ctx_suppression_duty_cycle":0.45,
-            "ctx_entrainment_amplitude":200,
+            "ctx_entrainment_amplitude":0,
             "ctx_entrainment_frequency":40,
             "ctx_entrainment_phase":0,
             "ctx_entrainment_start":1000
@@ -68,7 +68,7 @@
    "substrate":{
       "x_size":15,
       "dx":0.3,
-      "tstop":2000,
-      "dt":0.5
+      "tstop":8000,
+      "dt":1
    }
 }

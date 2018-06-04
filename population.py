@@ -83,6 +83,7 @@ class Population:
 
     def plot_history(self, show=True):
         py.plot(self.tt, self.history[:, :])
+        py.legend(['{:4.2f}'.format(x) for x in self.substrate_grid])
         if show:
             py.show()
 
