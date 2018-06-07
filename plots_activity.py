@@ -3,6 +3,8 @@ from functools import reduce
 import matplotlib
 import matplotlib.pyplot as py
 from scipy.signal import butter, spectrogram
+import scipy.signal as signal
+import numpy as np
 
 import utils
 
@@ -116,4 +118,52 @@ if __name__ == "__main__":
     matplotlib.rc('ytick', labelsize=13)
     py.plot(populations[stn[0]].tt, theta_history)
     py.savefig('plots_antoine/plot_theta', dpi=150, bbox_inches='tight')
+    py.close()
+
+
+    filename2 = 'dnf_results_2018-06-04-18-32-37'
+
+    results = utils.load_simulation_results(filename2)
+    config, populations, ampl_history, ctx_history, measured_state_history, ptp_history, theta_history = \
+        unpack_simulation_results(results)
+    stn, gpe = count_populations_type(populations)
+
+    py.figure(figsize=(14.3241, 2.5))
+    matplotlib.rc('xtick', labelsize=13)
+    matplotlib.rc('ytick', labelsize=13)
+    tt = populations[stn[0]].tt
+    beta = signal.square((tt - 250) * 2 * np.pi / 1000, 0.55)
+    gamma = signal.square((tt - 750) * 2 * np.pi / 1000, 0.55)
+    beta[:2500] = 0
+    gamma[:7500] = 0
+    beta[beta<0] = 0
+    gamma[gamma<0] = 0
+    py.fill_between(tt, beta, alpha=0.5)
+    py.fill_between(tt, gamma, alpha=0.5)
+    py.legend(['beta', 'gamma'])
+    py.yticks([])
+    py.savefig('plots_antoine/entrainment_beta_gamma', dpi=150, bbox_inches='tight')
+    py.close()
+
+    stn_history = reduce((lambda x, y: (x + y) / len(stn)), [populations[i].history for i in stn])
+    gpe_history = reduce((lambda x, y: (x + y) / len(gpe)), [populations[i].history for i in gpe])
+    plot_population_activity(stn_history, populations[stn[0]].substrate_grid, populations[stn[0]].tt, 'STN')
+    py.savefig('plots_antoine/entrainment_plot_stn', dpi=150, bbox_inches='tight')
+    py.close()
+    plot_population_activity(gpe_history, populations[gpe[0]].substrate_grid, populations[gpe[0]].tt, 'GPe')
+    py.savefig('plots_antoine/entrainment_plot_gpe', dpi=150, bbox_inches='tight')
+    py.close()
+
+    plot_specgram(stn_history, populations[0].dt, 'STN')
+    py.savefig('plots_antoine/entrainment_specgram_stn', dpi=150, bbox_inches='tight')
+    py.close()
+    plot_specgram(gpe_history, populations[0].dt, 'GPe')
+    py.savefig('plots_antoine/entrainment_specgram_gpe', dpi=150, bbox_inches='tight')
+    py.close()
+
+    py.figure(figsize=(14.3241, 2.5))
+    matplotlib.rc('xtick', labelsize=13)
+    matplotlib.rc('ytick', labelsize=13)
+    py.plot(populations[stn[0]].tt, theta_history)
+    py.savefig('plots_antoine/entrainment_plot_theta', dpi=150, bbox_inches='tight')
     py.close()

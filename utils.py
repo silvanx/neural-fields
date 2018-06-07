@@ -8,7 +8,7 @@ import numpy as np
 from scipy import signal
 
 
-def plot_simulation_results(populations, substrate, theta_history, ctx_history,
+def plot_simulation_results(populations, substrate, theta_history, ctx_history, str_history,
                             ampl_history, measured_state_history, ptp_history, params):
     for p in populations:
         py.figure()
@@ -25,6 +25,10 @@ def plot_simulation_results(populations, substrate, theta_history, ctx_history,
     for ch in ctx_history:
         py.plot(substrate.tt, ch)
     py.legend(['ctx'])
+    py.figure()
+    for sh in str_history:
+        py.plot(substrate.tt, sh)
+    py.legend(['str'])
     py.figure()
     plot_filter_comparison(populations, substrate, params, ampl_history, measured_state_history, ptp_history,
                            theta_history)
@@ -199,3 +203,46 @@ def make_filter(params):
     b = signal.firwin(ntaps, [lowcut, highcut], nyq=nyq, pass_zero=False,
                       window=('kaiser', beta), scale=False)
     return b, ntaps
+
+
+def plot_filter_thing():
+    path = pathlib.Path('simulation_results')
+
+    stn_no_feedback = []
+    gpe_no_feedback = []
+    stn_feedback = []
+    gpe_feedback = []
+    for file in path.iterdir():
+        if file.match('*_2018-06-06-*'):
+            with file.open('rb') as f:
+                res = pickle.load(f)
+                params = res['config']
+                freq = params['fields'][0]['cortex']['ctx_entrainment_frequency']
+                dt = params['substrate']['dt']
+                tags = params.get('tags')
+                if tags and 'entrainment_freq_exploration' in tags:
+                    stn_no_feedback.append((freq, res['populations'][0].tail_amplitude(int(1000 / dt))))
+                    gpe_no_feedback.append((freq, res['populations'][1].tail_amplitude(int(1000 / dt))))
+                elif tags and 'entrainment_freq_exploration_feedback_2' in tags:
+                    stn_feedback.append((freq, res['populations'][0].tail_amplitude(int(1000 / dt))))
+                    gpe_feedback.append((freq, res['populations'][1].tail_amplitude(int(1000 / dt))))
+    stn_no_feedback.sort(key=lambda tup: tup[0])
+    stn_feedback.sort(key=lambda tup: tup[0])
+    gpe_no_feedback.sort(key=lambda tup: tup[0])
+    gpe_feedback.sort(key=lambda tup: tup[0])
+
+    py.figure()
+    p1, a1 = zip(*stn_no_feedback)
+    py.semilogy(p1, a1, 'b-')
+    p2, a2 = zip(*stn_feedback)
+    py.semilogy(p2, a2, 'r-')
+    py.xlabel('Frequency [Hz]')
+    py.title('Feedback effect on STN')
+    py.figure()
+    p3, a3 = zip(*gpe_no_feedback)
+    py.semilogy(p3, a3, 'b-')
+    p4, a4 = zip(*gpe_feedback)
+    py.semilogy(p4, a4, 'r-')
+    py.xlabel('Frequency [Hz]')
+    py.title('Feedback effect on GPe')
+    py.show()

@@ -300,15 +300,25 @@ if __name__ == "__main__":
         utils.plot_connectivity(w)
         py.show()
 
-    populations, w, theta_history, ctx_history, str_history, ampl_history, measured_state_history, ptp_history = \
-        run_simulation(substrate, params, fields)
+    stn_ampl = []
+    gpe_ampl = []
 
-    print("Simulation finished")
-    if params['feedback'] == 0:
+    for freq in np.arange(1, 100, 0.5):
+        params['fields'][0]['cortex']['ctx_entrainment_frequency'] = freq
+        params['tags'] = ['entrainment_freq_exploration_feedback_2']
+        populations, w, theta_history, ctx_history, str_history, ampl_history, measured_state_history, ptp_history = \
+            run_simulation(substrate, params, fields)
+
+        print("Simulation finished for entrainment frequency: {} Hz".format(freq))
         print("STN amplitude in the last second: {}".format(populations[0].tail_amplitude(int(1000 / dt))))
+        stn_ampl.append(populations[0].tail_amplitude(int(1000 / dt)))
         print("GPe amplitude in the last second: {}".format(populations[1].tail_amplitude(int(1000 / dt))))
+        gpe_ampl.append(populations[1].tail_amplitude(int(1000 / dt)))
 
-    utils.plot_simulation_results(populations, substrate, theta_history,
-                                  ctx_history, str_history, ampl_history, measured_state_history, ptp_history, params)
-    utils.save_simulation_results(populations, theta_history, ctx_history, ampl_history, measured_state_history,
-                                  ptp_history, params)
+        utils.save_simulation_results(populations, theta_history, ctx_history, ampl_history, measured_state_history,
+                                      ptp_history, params)
+
+    py.plot(np.arange(1, 100, 0.5), stn_ampl)
+    py.plot(np.arange(1, 100, 0.5), gpe_ampl)
+    py.show()
+    pass

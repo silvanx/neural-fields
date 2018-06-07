@@ -83,6 +83,7 @@ def run_simulation(substrate, params):
 
     return populations, w, theta_history
 
+
 if __name__ == "__main__":
     print('Delayed Neural Fields')
     parser = argparse.ArgumentParser(description='Delayed Neural Fields simulation')
