@@ -50,23 +50,3 @@ class Substrate1D(Substrate):
         return self.grid[0][np.all([self.grid[0] >= population.starting_point,
                                     self.grid[0] <= population.starting_point +
                                     population.physical_size], axis=0)]
-
-
-class Substrate2D(Substrate):
-    def __init__(self, *args):
-        super().__init__(2, *args)
-
-    def place_population(self, population):
-        super().place_population(population)
-        # TODO: Implement returning grid for 2 dimensions
-        raise NotImplementedError("2D and 3D populations not functional yet")
-
-
-class Substrate3D(Substrate):
-    def __init__(self, *args):
-        super().__init__(3, *args)
-
-    def place_population(self, population):
-        super().place_population(population)
-        # TODO: Implement returning grid for 3 dimensions
-        raise NotImplementedError("2D and 3D populations not functional yet")

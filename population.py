@@ -42,6 +42,7 @@ class Population:
         self.tau = params['tau']
         self.control = ZeroControl(self)
 
+    # Generalize sigmoid to a response function
     def sigmoid(self, x):
         numerator = self.m * self.b
         denominator = self.b + (self.m - self.b) * \

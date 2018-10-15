@@ -64,7 +64,7 @@ def plot_specgram(history, dt, title):
     avg_hist = history[:, 0]
     b, a = butter_highpass(2, fs)
     # avg_hist = filtfilt(b, a, avg_hist)
-    fig = py.figure(figsize=(14.3241, 2.5))
+    fig = py.figure(figsize=(13.84, 2.41))
     matplotlib.rc('xtick', labelsize=13)
     matplotlib.rc('ytick', labelsize=13)
     # Pxx, freqs, bins, im = py.specgram(avg_hist, NFFT=750, Fs=fs, noverlap=500, cmap='rainbow')

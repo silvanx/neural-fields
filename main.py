@@ -1,6 +1,7 @@
 import argparse
 import json
 import pprint
+import math
 from collections import OrderedDict
 
 import matplotlib.pyplot as py
@@ -79,7 +80,10 @@ def add_field(field, substrate, params):
     }
     w = generate_kernels(p, field['connections'])
     c = field['cortex']
-    s = field['striatum']
+    try:
+        s = field['striatum']
+    except KeyError:
+        s = None
     return {"p": p, "w": w, "c": c, "s": s}
 
 
@@ -104,17 +108,24 @@ def calculate_ctx(t, params):
         else:
             supression = sup_amplitude
 
-    # TODO: set to zero when not present
-    en_amplitude = params["ctx_entrainment_amplitude"]
-    en_frequency = params["ctx_entrainment_frequency"]
-    en_phase = params["ctx_entrainment_phase"]
-    en_start = params["ctx_entrainment_start"]
+    try:
+        en_amplitude = params["ctx_entrainment_amplitude"]
+        en_frequency = params["ctx_entrainment_frequency"]
+        en_phase = params["ctx_entrainment_phase"]
+        en_start = params["ctx_entrainment_start"]
+    except TypeError:
+        en_amplitude = 0
+        en_frequency = 0
+        en_phase = 0
+        en_start = 0
     tt = (t - en_start) / 1000
     entrainment = en_amplitude * np.sin(tt * 2 * np.pi * en_frequency + en_phase) if tt >= 0 else 0
+    en_frequency_gamma = 49
+    entrainment_gamma = en_amplitude * np.sin(tt * 2 * np.pi * en_frequency_gamma + en_phase) if tt >= 0 else 0
 
     ampl_modulation_start = 0
-    ampl_modulation_period = 5000
-    ampl_modulation_duty_cycle = 1
+    ampl_modulation_period = 1000
+    ampl_modulation_duty_cycle = 0.5
 
     modulation = 0
     if t > ampl_modulation_start:
@@ -123,15 +134,20 @@ def calculate_ctx(t, params):
         if point_in_cycle <= ampl_modulation_duty_cycle * ampl_modulation_period:
             modulation = 1
 
-    return supression + modulation * entrainment
+    return supression + modulation * entrainment + entrainment_gamma
 
 
 def calculate_str(t, params):
-    # TODO: set to zero when not present
-    en_amplitude = params["str_entrainment_amplitude"]
-    en_frequency = params["str_entrainment_frequency"]
-    en_phase = params["str_entrainment_phase"]
-    en_start = params["str_entrainment_start"]
+    try:
+        en_amplitude = params["str_entrainment_amplitude"]
+        en_frequency = params["str_entrainment_frequency"]
+        en_phase = params["str_entrainment_phase"]
+        en_start = params["str_entrainment_start"]
+    except TypeError:
+        en_amplitude = 0
+        en_frequency = 0
+        en_phase = 0
+        en_start = 0
     tt = (t - en_start) / 1000
     entrainment = en_amplitude * np.sin(tt * 2 * np.pi * en_frequency + en_phase) if tt >= 0 else 0
 
@@ -194,6 +210,11 @@ def update_feedback_gain(t, params, substrate, theta):
     deadzone = params['filter']['deadzone']
     i = t / dt
     npoints = int(np.floor(tail_len / dt))
+    npop = 0
+    for f in params['fields']:
+        for p in f['populations'].values():
+            if p['order'] == 0:
+                npop += 1
 
     x1 = 0
     ampl = 0
@@ -202,8 +223,6 @@ def update_feedback_gain(t, params, substrate, theta):
         b, _ = utils.make_filter(params)
         for p in substrate.populations:
             if p.order == 0:
-                # TODO: Automatically count stn-like populations
-                npop = 1
                 x1 += p.get_tail(npoints) / npop
         measured_state = x1[-1]
         x1 = np.convolve(x1, b, mode='valid')
@@ -217,8 +236,6 @@ def update_feedback_gain(t, params, substrate, theta):
     else:
         for p in substrate.populations:
             if p.order == 0:
-                # TODO: Automatically count stn-like populations
-                npop = 1
                 x1 += p.get_tail(npoints) / npop
         measured_state = x1[-1] if len(x1) > 0 else 0
         x1 = measured_state
@@ -263,6 +280,18 @@ def run_simulation(substrate, params, fields):
     return populations, w, theta_history, ctx_history, str_history, ampl_history, measured_state_history, ptp_history
 
 
+def calculate_max_delta(params):
+    dt = params['substrate']['dt']
+    span = params['substrate']['x_size']
+    min_axonal_speed = None
+    for f in params['fields']:
+        for p in f['populations'].values():
+            if min_axonal_speed is None or p['axonal_speed'] < min_axonal_speed:
+                min_axonal_speed = p['axonal_speed']
+    max_delta = math.ceil(span / min_axonal_speed) / dt
+    return max_delta
+
+
 if __name__ == "__main__":
     print('Delayed Neural Fields')
     parser = argparse.ArgumentParser(description='Delayed Neural Fields')
@@ -272,8 +301,8 @@ if __name__ == "__main__":
     f = open(args.params, 'r')
     params = json.load(f)
     pprint.pprint(params)
-    # TODO: Calculate max delta
-    max_delta = 20
+    max_delta = calculate_max_delta(params)
+    print('Max delta: %d' % max_delta)
     dx = params["substrate"]["dx"]
     dt = params["substrate"]["dt"]
     plot_connectivity = False

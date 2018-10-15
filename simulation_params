@@ -1,16 +1,16 @@
 {
    "theta0":0,
    "tau_theta":100,
-   "sigma":1,
+   "sigma":0.3,
    "filtering":1,
    "filter":{
       "ntaps":160,
       "lowcut":10,
       "highcut":25,
       "tail_len":150,
-      "deadzone":150
+      "deadzone":50
    },
-   "feedback":1,
+   "feedback":0,
    "feedback_start_time":350,
    "fields":[
       {
@@ -49,70 +49,19 @@
             "K12":2,
             "K21":2.5,
             "K22":0.02,
-            "W_scale":1
+            "W_scale":0.2
          },
          "cortex": {
             "ctx_nudge":1,
-            "ctx_suppression":1000,
-            "ctx_suppression_start":250,
-            "ctx_suppression_periodic":1,
-            "ctx_suppression_period":900,
+            "ctx_suppression":0,
+            "ctx_suppression_start":0,
+            "ctx_suppression_periodic":0,
+            "ctx_suppression_period":1100,
             "ctx_suppression_duty_cycle":0.45,
-            "ctx_entrainment_amplitude":0,
-            "ctx_entrainment_frequency":40,
+            "ctx_entrainment_amplitude":300,
+            "ctx_entrainment_frequency":22,
             "ctx_entrainment_phase":0,
-            "ctx_entrainment_start":1000
-         }
-      },
-      {
-         "populations":{
-            "stn2":{
-               "order":0,
-               "x_size":2.5,
-               "starting_point":0,
-               "m":400,
-               "b":70,
-               "tau":7,
-               "x0":10,
-               "axonal_speed":10,
-               "ext_activity":0,
-               "ext_connectivity":0,
-               "ext_periodic":0
-            },
-            "gpe2":{
-               "order":1,
-               "x_size":2.5,
-               "starting_point":12.5,
-               "m":300,
-               "b":17,
-               "tau":6,
-               "x0":7,
-               "axonal_speed":5,
-               "ext_activity":0,
-               "ext_connectivity":0,
-               "ext_periodic":0
-            }
-         },
-         "connections":{
-            "sigma12":3.25,
-            "sigma21":3.25,
-            "sigma22":1.0,
-            "K12":2,
-            "K21":2.5,
-            "K22":0.02,
-            "W_scale":1
-         },
-         "cortex": {
-            "ctx_nudge":0,
-            "ctx_suppression":1000,
-            "ctx_suppression_start":700,
-            "ctx_suppression_periodic":1,
-            "ctx_suppression_period":900,
-            "ctx_suppression_duty_cycle":0.45,
-            "ctx_entrainment_amplitude":0,
-            "ctx_entrainment_frequency":40,
-            "ctx_entrainment_phase":0,
-            "ctx_entrainment_start":1000
+            "ctx_entrainment_start":100
          }
       }
    ],
@@ -120,6 +69,6 @@
       "x_size":15,
       "dx":0.3,
       "tstop":2800,
-      "dt":0.2
+      "dt":0.15
    }
 }
